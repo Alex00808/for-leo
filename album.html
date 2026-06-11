@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d090b">
+  <meta name="description" content="The private photo album of Leo and Alex.">
+  <title>Leo & Alex · Unser Album</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="album.css">
+</head>
+<body>
+  <div class="album-noise" aria-hidden="true"></div>
+  <div class="album-cursor" aria-hidden="true"></div>
+
+  <nav class="album-nav">
+    <a class="album-mark" href="index.html">L <span>AND</span> A</a>
+    <p data-i18n="navTitle">Unser Fotoalbum</p>
+    <div class="album-languages" aria-label="Language selector">
+      <button type="button" data-lang="de" class="active">🇩🇪 <b>DE</b></button>
+      <button type="button" data-lang="en">🇬🇧 <b>EN</b></button>
+      <button type="button" data-lang="zh">🇨🇳 <b>中</b></button>
+    </div>
+  </nav>
+
+  <header class="album-hero">
+    <div class="album-studio" aria-hidden="true">
+      <div class="film-strip film-strip-one"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="film-strip film-strip-two"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="floating-print print-one"><span>22 · 03 · 2026</span><b>LEO</b></div>
+      <div class="floating-print print-two"><span>07 · 05 · 2026</span><b>ALEX</b></div>
+      <div class="floating-print print-three"><span>8,900 KM</span><b>US</b></div>
+      <div class="camera-focus"><i></i><i></i><i></i></div>
+      <div class="contact-code">FRAME 001&nbsp;&nbsp; / &nbsp;&nbsp;MEMORY LOADING</div>
+    </div>
+    <div class="album-hero-focus" aria-hidden="true"></div>
+    <p class="album-kicker" data-i18n="heroKicker">LEO + ALEX · PRIVATES ARCHIV</p>
+    <h1 data-i18n="heroTitle">Ein Album,<br><em>das mit uns wächst.</em></h1>
+    <p class="album-hero-copy" data-i18n="heroCopy">Heute sind es vielleicht drei Bilder. Irgendwann hoffentlich so viele, dass wir beim Scrollen vergessen, wie weit wir einmal voneinander entfernt waren.</p>
+    <div class="album-hero-actions">
+      <button class="pill-button primary" id="addPhotosHero" type="button"><span data-i18n="addPhotos">Fotos hinzufügen</span><i>+</i></button>
+      <a class="pill-button" href="index.html#archive"><span data-i18n="backToLetter">Zurück zum Liebesbrief</span><i>↙</i></a>
+    </div>
+    <div class="album-locations"><span>HEILBRONN · LEO</span><b>8,900 KM · ONE ALBUM</b><span>SHENZHEN · ALEX</span></div>
+  </header>
+
+  <main>
+    <section class="pinned-section">
+      <div class="section-title">
+        <div><span>01</span><p data-i18n="pinnedKicker">IMMER GANZ OBEN</p></div>
+        <h2 data-i18n="pinnedTitle">Unsere drei<br><em>ersten Plätze.</em></h2>
+        <p data-i18n="pinnedCopy">Diese drei Rahmen sind mit dem Liebesbrief verbunden. Was dort hineinkommt, bleibt auch hier ganz oben.</p>
+      </div>
+      <div class="pinned-grid" id="pinnedGrid">
+        <button class="pinned-card" type="button" data-featured-slot="0"><span class="pinned-index">01</span><span class="pinned-plus">+</span><strong data-i18n="pinOne">Unser erstes echtes Foto</strong><small data-i18n="emptyPin">Noch wartet dieser Rahmen.</small></button>
+        <button class="pinned-card" type="button" data-featured-slot="1"><span class="pinned-index">02</span><span class="pinned-plus">+</span><strong data-i18n="pinTwo">Ein Tag in Shenzhen</strong><small data-i18n="emptyPin">Noch wartet dieser Rahmen.</small></button>
+        <button class="pinned-card" type="button" data-featured-slot="2"><span class="pinned-index">03</span><span class="pinned-plus">+</span><strong data-i18n="pinThree">Ein Tag in Heilbronn</strong><small data-i18n="emptyPin">Noch wartet dieser Rahmen.</small></button>
+      </div>
+    </section>
+
+    <section class="gallery-section">
+      <div class="gallery-heading">
+        <div class="section-title compact">
+          <div><span>02</span><p data-i18n="galleryKicker">UND ALLES, WAS DANACH KOMMT</p></div>
+          <h2 data-i18n="galleryTitle">Viele kleine Beweise,<br><em>dass wir wirklich da waren.</em></h2>
+        </div>
+        <div class="gallery-tools">
+          <span id="photoCount">0 Fotos</span>
+          <button class="pill-button primary" id="addPhotos" type="button"><span data-i18n="addMore">Mehr hinzufügen</span><i>+</i></button>
+        </div>
+      </div>
+
+      <div class="empty-gallery" id="emptyGallery">
+        <span>∞</span>
+        <h3 data-i18n="emptyTitle">Hier ist noch sehr viel Platz für uns.</h3>
+        <p data-i18n="emptyCopy">Füg das erste Foto hinzu. Die perfekte Reihenfolge finden wir später – Hauptsache, der Moment bleibt.</p>
+      </div>
+      <div class="photo-wall" id="photoWall"></div>
+    </section>
+  </main>
+
+  <footer class="album-footer">
+    <p>LEO <span>AND</span> ALEX</p>
+    <small data-i18n="footer">Fortsetzung folgt. Sehr wahrscheinlich mit einer Katze im Bild.</small>
+    <a href="index.html" data-i18n="backHome">Zurück zu uns</a>
+  </footer>
+
+  <input id="galleryFileInput" type="file" accept="image/*" multiple hidden>
+
+  <div class="photo-modal" id="photoModal" aria-hidden="true">
+    <button class="modal-close" id="modalClose" type="button" aria-label="Close">×</button>
+    <div class="modal-image-wrap"><img id="modalImage" alt=""></div>
+    <aside class="modal-note">
+      <p class="modal-number" id="modalNumber">MEMORY 001</p>
+      <time id="modalDate"></time>
+      <h2 data-i18n="modalTitle">Was sollen wir über diesen Moment niemals vergessen?</h2>
+      <div class="comment-feed" id="commentFeed"></div>
+      <div class="comment-empty" id="commentEmpty">
+        <span>NO NOTES YET</span>
+        <p data-i18n="noComments">Noch hat niemand etwas zu diesem Foto geschrieben.</p>
+      </div>
+      <div class="comment-composer">
+        <div class="composer-heading">
+          <p data-i18n="commentAs">Wer hinterlässt diese Nachricht?</p>
+          <div class="author-switch" id="authorSwitch">
+            <button type="button" data-author="Alex" class="active">ALEX</button>
+            <button type="button" data-author="Leo">LEO</button>
+          </div>
+        </div>
+        <textarea id="modalMessage" maxlength="1200" data-i18n-placeholder="modalPlaceholder" placeholder="Schreib hier die Geschichte hinter diesem Foto ..."></textarea>
+        <div class="modal-actions">
+          <button class="delete-photo" id="deletePhoto" type="button" data-i18n="deletePhoto">Foto löschen</button>
+          <button class="pill-button primary" id="savePhotoNote" type="button"><span data-i18n="saveNote">Nachricht hinzufügen</span><i>✓</i></button>
+        </div>
+      </div>
+      <p class="modal-status" id="modalStatus"></p>
+    </aside>
+  </div>
+
+  <script src="album-store.js"></script>
+  <script src="album.js"></script>
+</body>
+</html>
