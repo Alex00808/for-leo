@@ -142,6 +142,7 @@ const polishedCopy = {
     letterSaved: 'Für unser zukünftiges Wir gespeichert',
     letterSave: 'Nachricht bewahren',
     albumStorageError: 'Das Foto ist zu groß zum Speichern – bitte versuch ein kleineres.',
+    albumOwnerOnly: 'Nur Alex und Leo können diese Albumrahmen verändern.',
     finalEyebrow: 'Eine wichtige kleine Frage',
     finalTitle: 'Leo, darf ich dich<br>auch an all den Tagen,<br><em>die noch kommen, lieben?</em>',
     finalSub: 'Irgendwann möchte ich dir nicht mehr durch einen Bildschirm gute Nacht sagen, sondern direkt neben dir.',
@@ -213,6 +214,7 @@ const polishedCopy = {
     letterSaved: 'Saved for our future selves',
     letterSave: 'Keep this message',
     albumStorageError: 'This photo is too large to save. Please try a smaller one.',
+    albumOwnerOnly: 'Only Alex and Leo can change these album frames.',
     finalEyebrow: 'One important little question',
     finalTitle: 'Leo, may I keep<br>loving you through all<br><em>the days still to come?</em>',
     finalSub: 'One day I want to say goodnight beside you, instead of through a screen.',
@@ -284,6 +286,7 @@ const polishedCopy = {
     letterSaved: '已经替未来的我们保管好了',
     letterSave: '保存这封留言',
     albumStorageError: '照片太大，浏览器装不下啦，请换一张小一点的。',
+    albumOwnerOnly: '只有 Alex 和 Leo 可以更换这些相框里的照片。',
     finalEyebrow: '一个很重要的小问题',
     finalTitle: 'Leo，以后的日子，<br>可以继续让我<br><em>喜欢你吗？</em>',
     finalSub: '想从隔着屏幕说晚安，慢慢走到在你身边说晚安。',
@@ -391,9 +394,26 @@ updateCityClocks();
 window.setInterval(updateCityClocks, 1000);
 
 let selectedPhotoSlot = 0;
+let archiveProfile = null;
 
 function archiveText(key) {
   return translations[currentLanguage]?.[key] || translations.en[key] || '';
+}
+
+function canManageArchivePhotos() {
+  return archiveProfile?.role === 'owner';
+}
+
+function renderArchivePermissions() {
+  albumFrames.forEach((frame) => {
+    frame.classList.toggle('owner-locked', !canManageArchivePhotos());
+    frame.setAttribute('aria-disabled', String(!canManageArchivePhotos()));
+  });
+}
+
+async function refreshArchiveProfile() {
+  archiveProfile = await window.LoveCloud?.getCurrentProfile?.() || null;
+  renderArchivePermissions();
 }
 
 function updateArchiveLabels() {
@@ -442,7 +462,13 @@ function compressArchivePhoto(file) {
 }
 
 albumFrames.forEach((frame) => {
-  frame.addEventListener('click', () => {
+  frame.addEventListener('click', async () => {
+    await refreshArchiveProfile();
+    if (!canManageArchivePhotos()) {
+      albumCounter.textContent = archiveText('albumOwnerOnly');
+      window.setTimeout(updateArchiveLabels, 3600);
+      return;
+    }
     selectedPhotoSlot = Number(frame.dataset.photoSlot);
     albumFileInput.value = '';
     albumFileInput.click();
@@ -450,6 +476,13 @@ albumFrames.forEach((frame) => {
 });
 
 albumFileInput?.addEventListener('change', async () => {
+  await refreshArchiveProfile();
+  if (!canManageArchivePhotos()) {
+    albumFileInput.value = '';
+    albumCounter.textContent = archiveText('albumOwnerOnly');
+    window.setTimeout(updateArchiveLabels, 3600);
+    return;
+  }
   const file = albumFileInput.files?.[0];
   if (!file) return;
   try {
@@ -483,6 +516,11 @@ async function loadFeaturedPhotos() {
 }
 
 loadFeaturedPhotos();
+refreshArchiveProfile();
+window.LoveCloud?.onAuthChange?.((profile) => {
+  archiveProfile = profile;
+  renderArchivePermissions();
+});
 window.addEventListener('pageshow', loadFeaturedPhotos);
 
 function createAmbientSound() {

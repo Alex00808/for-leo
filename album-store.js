@@ -2,6 +2,7 @@
   const DB_NAME = 'leo-alex-album';
   const STORE_NAME = 'photos';
   const FALLBACK_KEY = 'leo-alex-album-fallback';
+  const DELETED_COMMENTS_KEY = 'leo-alex-deleted-comments';
   let databasePromise;
 
   function openDatabase() {
@@ -50,7 +51,14 @@
     return { ...record, comments };
   }
 
+  async function requireAlbumOwner() {
+    const profile = await window.LoveCloud?.getCurrentProfile?.();
+    if (profile?.role !== 'owner') throw new Error('Only Alex and Leo can manage album photographs.');
+    return profile;
+  }
+
   async function getAll() {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.getAllPhotos();
     let records;
     try { records = await run('readonly', (store) => store.getAll()); }
     catch (error) { records = fallbackRead(); }
@@ -68,6 +76,8 @@
   }
 
   async function remove(id) {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.removePhoto(id);
+    await requireAlbumOwner();
     try { await run('readwrite', (store) => store.delete(id)); }
     catch (error) { fallbackWrite(fallbackRead().filter((item) => item.id !== id)); }
   }
@@ -78,6 +88,8 @@
   }
 
   async function add(src, details = {}) {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.addPhoto(src, details);
+    await requireAlbumOwner();
     return save({
       id: createId(),
       src,
@@ -91,6 +103,8 @@
   }
 
   async function saveFeatured(slot, src, details = {}) {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.saveFeatured(slot, src, details);
+    await requireAlbumOwner();
     const current = (await getAll()).find((item) => item.featuredSlot === slot);
     return save({
       id: current?.id || `featured-${slot}`,
@@ -111,7 +125,31 @@
     return save({ ...current, ...patch, id, updatedAt: Date.now() });
   }
 
+  async function addComment(id, comment) {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.addComment(id, comment.text);
+    const current = (await getAll()).find((item) => item.id === id);
+    if (!current) return null;
+    return save({ ...current, comments: [...(current.comments || []), comment], updatedAt: Date.now() });
+  }
+
+  async function removeComment(photoId, commentId) {
+    if (window.LoveCloud?.enabled) return window.LoveCloud.removeComment(commentId);
+    const current = (await getAll()).find((item) => item.id === photoId);
+    if (!current) return null;
+    const comment = (current.comments || []).find((item) => item.id === commentId);
+    if (!comment) return current;
+    try {
+      const archive = JSON.parse(localStorage.getItem(DELETED_COMMENTS_KEY) || '[]');
+      archive.push({ ...comment, photoId, deletedAt:Date.now(), deletedBy:comment.authorId || null });
+      localStorage.setItem(DELETED_COMMENTS_KEY, JSON.stringify(archive));
+    } catch (error) { /* The visible comment can still be removed in preview mode. */ }
+    return save({ ...current, comments:(current.comments || []).filter((item) => item.id !== commentId), updatedAt:Date.now() });
+  }
+
   async function migrateLegacyPhotos() {
+    if (window.LoveCloud?.enabled) return false;
+    const profile = await window.LoveCloud?.getCurrentProfile?.();
+    if (profile?.role !== 'owner') return false;
     let migrated = false;
     const existing = await getAll();
     for (let slot = 0; slot < 3; slot += 1) {
@@ -127,5 +165,5 @@
     return migrated;
   }
 
-  window.LoveAlbum = { getAll, add, saveFeatured, update, remove, migrateLegacyPhotos };
+  window.LoveAlbum = { getAll, add, saveFeatured, update, addComment, removeComment, remove, migrateLegacyPhotos, isCloud: () => Boolean(window.LoveCloud?.enabled) };
 })();

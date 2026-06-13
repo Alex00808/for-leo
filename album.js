@@ -56,6 +56,47 @@ Object.assign(albumTranslations.zh, {
   emptyMessage: '先写几句话，再保存这条留言吧。'
 });
 
+Object.assign(albumTranslations.de, {
+  accountLabel: 'GÄSTEBUCH', signIn: 'Anmelden', signUp: 'Registrieren', signOut: 'Abmelden',
+  accountKicker: 'EIN NAME FÜR DIE ERINNERUNG', accountTitle: 'Komm herein,<br><em>wir merken uns dich.</em>',
+  accountIntro: 'Nach dem Anmelden erscheinen dein Name und dein Bild automatisch bei jeder Nachricht.',
+  chooseAvatar: 'Profilbild wählen', avatarHint: 'Ein echtes Foto oder etwas, das nach dir aussieht.', displayName: 'Dein Name', password: 'Passwort',
+  guestName: 'Noch nicht angemeldet', changeAccount: 'Konto öffnen', readerHint: 'Eine Nachricht, die bei diesem Bild bleibt.',
+  localMode: 'Lokale Vorschau: Konten und Nachrichten sind nur auf diesem Gerät sichtbar.', cloudMode: 'Online: Dieses Konto und seine Nachrichten werden sicher geteilt.',
+  confirmEmail: 'Fast geschafft. Bitte bestätige zuerst die E-Mail und melde dich danach an.', saveProfile: 'Profil speichern', profileSaved: 'Dein Profil wurde aktualisiert.',
+  signInToComment: 'Melde dich an, damit dein Name und dein Bild bei der Nachricht stehen.',
+  roleGuest: 'GAST', roleFriend: 'FREUND', roleFamily: 'FAMILIE', roleOwner: 'ALBUM-INHABER',
+  deleteOwnComment: 'Meine Nachricht löschen', deleteCommentConfirm: 'Diese Nachricht löschen? Im Album verschwindet sie, im privaten Verwaltungsarchiv bleibt sie erhalten.', commentDeleted: 'Deine Nachricht wurde aus dem Album entfernt.',
+  ownerOnlyPhotos: 'Nur Alex und Leo können Fotos hinzufügen, ersetzen oder löschen.'
+});
+Object.assign(albumTranslations.en, {
+  accountLabel: 'GUESTBOOK', signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out',
+  accountKicker: 'A NAME FOR THE MEMORY', accountTitle: 'Come in,<br><em>we will remember you.</em>',
+  accountIntro: 'Once signed in, your name and photograph appear automatically beside every message.',
+  chooseAvatar: 'Choose a profile picture', avatarHint: 'A real photo, or simply something that feels like you.', displayName: 'Your name', password: 'Password',
+  guestName: 'Not signed in yet', changeAccount: 'Open account', readerHint: 'A message that stays with this photograph.',
+  localMode: 'Local preview: accounts and messages are visible on this device only.', cloudMode: 'Online: this account and its messages are shared securely.',
+  confirmEmail: 'Almost there. Confirm the email first, then sign in.', saveProfile: 'Save profile', profileSaved: 'Your profile has been updated.',
+  signInToComment: 'Sign in so your name and picture can stay beside this message.',
+  roleGuest: 'GUEST', roleFriend: 'FRIEND', roleFamily: 'FAMILY', roleOwner: 'ALBUM OWNER',
+  deleteOwnComment: 'Delete my message', deleteCommentConfirm: 'Delete this message? It will disappear from the album but remain in the private administration archive.', commentDeleted: 'Your message has been removed from the album.',
+  ownerOnlyPhotos: 'Only Alex and Leo can add, replace, or delete photographs.'
+});
+Object.assign(albumTranslations.zh, {
+  accountLabel: '亲友留言簿', signIn: '登录', signUp: '注册账号', signOut: '退出登录',
+  accountKicker: '给这段回忆留下一个名字', accountTitle: '进来坐坐，<br><em>我们会记住你。</em>',
+  accountIntro: '登录后，每一条留言都会自动显示你的名字和头像，Leo 和 Alex 一眼就知道是谁来过。',
+  chooseAvatar: '选择头像', avatarHint: '可以是真人照片，也可以是很像你的那张图。', displayName: '你的名字', password: '密码',
+  guestName: '还没有登录', changeAccount: '打开账号', readerHint: '这句话，会一直留在这张照片旁边。',
+  localMode: '当前是本地预览：账号与留言只保存在这台设备。接入 Supabase 后才会与亲友共享。', cloudMode: '已连接云端：账号与留言会在亲友之间同步。',
+  confirmEmail: '就差一步：请先去邮箱确认注册，然后回来登录。', saveProfile: '保存名字和头像', profileSaved: '头像和名字已经更新好了。',
+  signInToComment: '先登录一下，留言旁边才会自动留下你的名字和头像。',
+  commentAs: '你将以这个身份留言', saveNote: '发布这条留言', noComments: '这张照片下面还没有留言。第一句话留给你。',
+  roleGuest: '访客', roleFriend: '亲友', roleFamily: '家人', roleOwner: '相册主人',
+  deleteOwnComment: '删除我的留言', deleteCommentConfirm: '确定删除这条留言吗？它会从相册中消失，但原文和删除时间仍会保留在你的后台归档中。', commentDeleted: '这条留言已从相册中删除。',
+  ownerOnlyPhotos: '只有 Alex 和 Leo 可以添加、更换或删除照片。'
+});
+
 const languageButtons = document.querySelectorAll('[data-lang]');
 const translatedElements = document.querySelectorAll('[data-i18n]');
 const translatedPlaceholders = document.querySelectorAll('[data-i18n-placeholder]');
@@ -64,6 +105,9 @@ const fileInput = document.querySelector('#galleryFileInput');
 const photoWall = document.querySelector('#photoWall');
 const emptyGallery = document.querySelector('#emptyGallery');
 const photoCount = document.querySelector('#photoCount');
+const addPhotosHero = document.querySelector('#addPhotosHero');
+const addPhotos = document.querySelector('#addPhotos');
+const deletePhoto = document.querySelector('#deletePhoto');
 const modal = document.querySelector('#photoModal');
 const modalImage = document.querySelector('#modalImage');
 const modalDate = document.querySelector('#modalDate');
@@ -72,13 +116,43 @@ const modalMessage = document.querySelector('#modalMessage');
 const modalStatus = document.querySelector('#modalStatus');
 const commentFeed = document.querySelector('#commentFeed');
 const commentEmpty = document.querySelector('#commentEmpty');
-const authorButtons = document.querySelectorAll('[data-author]');
 const cursor = document.querySelector('.album-cursor');
+const accountChip = document.querySelector('#accountChip');
+const accountAvatar = document.querySelector('#accountAvatar');
+const accountName = document.querySelector('#accountName');
+const accountRole = document.querySelector('#accountRole');
+const accountModal = document.querySelector('#accountModal');
+const accountForm = document.querySelector('#accountForm');
+const accountStatus = document.querySelector('#accountStatus');
+const accountDisplayName = document.querySelector('#accountDisplayName');
+const accountEmail = document.querySelector('#accountEmail');
+const accountPassword = document.querySelector('#accountPassword');
+const accountPhoto = document.querySelector('#accountPhoto');
+const accountPhotoPreview = document.querySelector('#profilePhotoPreview');
+const accountNameField = document.querySelector('#accountNameField');
+const profilePhotoField = document.querySelector('#profilePhotoField');
+const accountSubmit = document.querySelector('#accountSubmit');
+const accountSignOut = document.querySelector('#accountSignOut');
+const composerIdentity = document.querySelector('#composerIdentity');
+const composerAvatar = document.querySelector('#composerAvatar');
+const composerName = document.querySelector('#composerName');
+const commentReader = document.querySelector('#commentReader');
+const readerAvatar = document.querySelector('#readerAvatar');
+const readerAuthor = document.querySelector('#readerAuthor');
+const readerTime = document.querySelector('#readerTime');
+const readerMessage = document.querySelector('#readerMessage');
+const readerRole = document.querySelector('#readerRole');
+const readerMemory = document.querySelector('#readerMemory');
+const readerPhotoGhost = document.querySelector('#readerPhotoGhost');
+const readerDelete = document.querySelector('#readerDelete');
 let currentLanguage = 'de';
 let records = [];
 let activeRecord = null;
 let uploadTargetSlot = null;
-let selectedAuthor = 'Alex';
+let currentProfile = null;
+let authMode = 'signin';
+let commentObserver = null;
+let activeReaderComment = null;
 
 function text(key) { return albumTranslations[currentLanguage]?.[key] || albumTranslations.en[key] || ''; }
 
@@ -97,6 +171,8 @@ function setLanguage(language) {
   try { localStorage.setItem('leo-language', currentLanguage); } catch (error) { /* Storage may be unavailable in a preview. */ }
   renderAlbum();
   if (activeRecord) renderComments();
+  if (activeReaderComment) readerRole.textContent = roleLabel(activeReaderComment.authorRole);
+  renderAccount();
 }
 
 languageButtons.forEach((button) => button.addEventListener('click', () => setLanguage(button.dataset.lang)));
@@ -144,6 +220,7 @@ function renderPinned() {
       card.prepend(image);
     }
   });
+  renderPhotoPermissions();
 }
 
 function createPhotoCard(record, index) {
@@ -183,20 +260,33 @@ async function loadAlbum() {
 }
 
 function choosePhotos(slot = null) {
+  if (!currentProfile) {
+    openAccount('signin');
+    return;
+  }
+  if (!isAlbumOwner()) {
+    window.alert(text('ownerOnlyPhotos'));
+    return;
+  }
   uploadTargetSlot = slot;
   fileInput.multiple = slot === null;
   fileInput.value = '';
   fileInput.click();
 }
 
-document.querySelector('#addPhotosHero').addEventListener('click', () => choosePhotos());
-document.querySelector('#addPhotos').addEventListener('click', () => choosePhotos());
+addPhotosHero.addEventListener('click', () => choosePhotos());
+addPhotos.addEventListener('click', () => choosePhotos());
 pinnedCards.forEach((card) => card.addEventListener('click', () => {
   if (card.dataset.recordId) openModal(card.dataset.recordId);
-  else choosePhotos(Number(card.dataset.featuredSlot));
+  else if (isAlbumOwner()) choosePhotos(Number(card.dataset.featuredSlot));
 }));
 
 fileInput.addEventListener('change', async () => {
+  if (!isAlbumOwner()) {
+    fileInput.value = '';
+    window.alert(text('ownerOnlyPhotos'));
+    return;
+  }
   const files = [...fileInput.files];
   if (!files.length) return;
   try {
@@ -223,38 +313,203 @@ function commentDate(value) {
   }).format(date);
 }
 
+function createAvatar(src, name, className = '') {
+  const avatar = document.createElement('i');
+  avatar.className = className;
+  if (src) {
+    const image = new Image();
+    image.src = src;
+    image.alt = name || '';
+    avatar.append(image);
+  } else {
+    avatar.textContent = (name || '?').trim().slice(0, 1).toUpperCase();
+  }
+  return avatar;
+}
+
+function setAvatarElement(element, profile) {
+  element.replaceChildren();
+  if (profile?.avatarUrl) {
+    const image = new Image();
+    image.src = profile.avatarUrl;
+    image.alt = profile.displayName;
+    element.append(image);
+  } else {
+    element.textContent = profile?.initial || profile?.displayName?.slice(0, 1).toUpperCase() || '?';
+  }
+}
+
+function roleTranslationKey(role) {
+  if (role === 'owner') return 'roleOwner';
+  if (role === 'family') return 'roleFamily';
+  if (role === 'friend') return 'roleFriend';
+  return 'roleGuest';
+}
+
+function roleLabel(role) {
+  return text(roleTranslationKey(role));
+}
+
+function isAlbumOwner() {
+  return currentProfile?.role === 'owner';
+}
+
+function renderPhotoPermissions() {
+  const owner = isAlbumOwner();
+  addPhotosHero.hidden = !owner;
+  addPhotos.hidden = !owner;
+  deletePhoto.hidden = !owner;
+  pinnedCards.forEach((card) => {
+    const locked = !card.dataset.recordId && !owner;
+    card.classList.toggle('owner-locked', locked);
+    card.setAttribute('aria-disabled', String(locked));
+  });
+}
+
+function renderAccount() {
+  if (!accountName) return;
+  accountName.textContent = currentProfile?.displayName || text('signIn');
+  accountRole.textContent = currentProfile ? roleLabel(currentProfile.role) : text('roleGuest');
+  composerName.textContent = currentProfile?.displayName || text('guestName');
+  setAvatarElement(accountAvatar, currentProfile);
+  setAvatarElement(composerAvatar, currentProfile);
+  accountChip.classList.toggle('signed-in', Boolean(currentProfile));
+  composerIdentity.classList.toggle('signed-in', Boolean(currentProfile));
+  accountSignOut.hidden = !currentProfile;
+  renderPhotoPermissions();
+}
+
+function setAuthMode(mode) {
+  authMode = currentProfile ? 'profile' : (mode === 'signup' ? 'signup' : 'signin');
+  document.querySelectorAll('[data-auth-mode]').forEach((button) => button.classList.toggle('active', button.dataset.authMode === authMode));
+  document.querySelector('#authTabs').hidden = Boolean(currentProfile);
+  accountNameField.hidden = authMode === 'signin';
+  profilePhotoField.hidden = authMode === 'signin';
+  accountEmail.closest('label').hidden = authMode === 'profile';
+  accountPassword.closest('label').hidden = authMode === 'profile';
+  accountEmail.required = authMode !== 'profile';
+  accountPassword.required = authMode !== 'profile';
+  accountDisplayName.required = authMode !== 'signin';
+  accountSubmit.querySelector('span').textContent = authMode === 'profile' ? text('saveProfile') : text(authMode === 'signup' ? 'signUp' : 'signIn');
+  if (currentProfile) {
+    accountDisplayName.value = currentProfile.displayName || '';
+    setAvatarElement(accountPhotoPreview, currentProfile);
+  }
+  accountStatus.textContent = '';
+}
+
+function openAccount(mode = 'signin') {
+  setAuthMode(mode);
+  accountModal.classList.add('visible');
+  accountModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('account-open');
+}
+
+function closeAccount() {
+  accountModal.classList.remove('visible');
+  accountModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('account-open');
+  accountForm.reset();
+  accountPhotoPreview.textContent = '+';
+}
+
+function openCommentReader(comment) {
+  activeReaderComment = comment;
+  readerAuthor.textContent = comment.author || 'Guest';
+  readerTime.textContent = commentDate(comment.createdAt);
+  readerMessage.textContent = comment.text || '';
+  readerRole.textContent = roleLabel(comment.authorRole);
+  readerMemory.textContent = `MEMORY ${String(records.indexOf(activeRecord) + 1).padStart(3, '0')}`;
+  readerPhotoGhost.style.backgroundImage = activeRecord?.src ? `url("${activeRecord.src.replace(/"/g, '%22')}")` : '';
+  readerDelete.hidden = !currentProfile || currentProfile.id !== comment.authorId;
+  setAvatarElement(readerAvatar, { displayName: comment.author, avatarUrl: comment.avatarUrl, initial: (comment.author || '?').slice(0, 1) });
+  commentReader.classList.add('visible');
+  commentReader.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('reader-open');
+}
+
+function closeCommentReader() {
+  commentReader.classList.remove('visible');
+  commentReader.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('reader-open');
+  activeReaderComment = null;
+}
+
+async function deleteOwnComment(comment) {
+  if (!activeRecord || !comment || !currentProfile || currentProfile.id !== comment.authorId) return;
+  if (!window.confirm(text('deleteCommentConfirm'))) return;
+  const recordId = activeRecord.id;
+  await window.LoveAlbum.removeComment(recordId, comment.id);
+  closeCommentReader();
+  await loadAlbum();
+  activeRecord = records.find((record) => record.id === recordId);
+  if (activeRecord) {
+    renderComments();
+    modalStatus.textContent = text('commentDeleted');
+  }
+}
+
 function renderComments() {
   if (!activeRecord) return;
   const comments = activeRecord.comments || [];
   commentEmpty.classList.toggle('hidden', comments.length > 0);
-  commentFeed.replaceChildren(...comments.map((comment) => {
+  commentFeed.classList.toggle('is-scrollable', comments.length >= 4);
+  if (commentObserver) commentObserver.disconnect();
+  const cards = comments.map((comment, index) => {
     const card = document.createElement('article');
     card.className = 'comment-card';
+    card.tabIndex = 0;
+    card.style.setProperty('--comment-index', index);
     const header = document.createElement('header');
     const author = document.createElement('span');
     author.className = 'comment-author';
-    const initial = document.createElement('i');
-    initial.textContent = (comment.author || '?').slice(0, 1).toUpperCase();
+    const initial = createAvatar(comment.avatarUrl, comment.author);
     const name = document.createElement('b');
-    name.textContent = comment.author || 'Alex';
-    author.append(initial, name);
+    name.textContent = comment.author || 'Guest';
+    const role = document.createElement('small');
+    role.textContent = roleLabel(comment.authorRole);
+    author.append(initial, name, role);
     const time = document.createElement('time');
     time.textContent = commentDate(comment.createdAt);
     const message = document.createElement('p');
     message.textContent = comment.text;
-    header.append(author, time);
+    const tools = document.createElement('span');
+    tools.className = 'comment-tools';
+    tools.append(time);
+    if (currentProfile?.id === comment.authorId) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'comment-delete';
+      remove.textContent = '×';
+      remove.setAttribute('aria-label', text('deleteOwnComment'));
+      remove.title = text('deleteOwnComment');
+      remove.addEventListener('click', (event) => {
+        event.stopPropagation();
+        deleteOwnComment(comment);
+      });
+      tools.append(remove);
+    }
+    header.append(author, tools);
     card.append(header, message);
+    card.addEventListener('click', () => openCommentReader(comment));
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openCommentReader(comment);
+      }
+    });
     return card;
-  }));
+  });
+  commentFeed.replaceChildren(...cards);
+  if (comments.length >= 4) {
+    commentObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => entry.target.classList.toggle('revealed', entry.isIntersecting));
+    }, { root: commentFeed, threshold: .18 });
+    cards.forEach((card) => commentObserver.observe(card));
+  } else {
+    requestAnimationFrame(() => cards.forEach((card) => card.classList.add('revealed')));
+  }
 }
-
-function setAuthor(author) {
-  selectedAuthor = author === 'Leo' ? 'Leo' : 'Alex';
-  authorButtons.forEach((button) => button.classList.toggle('active', button.dataset.author === selectedAuthor));
-  try { localStorage.setItem('leo-album-author', selectedAuthor); } catch (error) { /* Keep this session's choice. */ }
-}
-
-authorButtons.forEach((button) => button.addEventListener('click', () => setAuthor(button.dataset.author)));
 
 function openModal(id) {
   activeRecord = records.find((record) => record.id === id);
@@ -266,6 +521,7 @@ function openModal(id) {
   modalMessage.value = '';
   modalStatus.textContent = '';
   renderComments();
+  commentFeed.scrollTop = 0;
   modal.classList.add('visible');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
@@ -280,23 +536,36 @@ function closeModal() {
 
 document.querySelector('#modalClose').addEventListener('click', closeModal);
 modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
-window.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); });
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (commentReader.classList.contains('visible')) closeCommentReader();
+  else if (accountModal.classList.contains('visible')) closeAccount();
+  else closeModal();
+});
 
 document.querySelector('#savePhotoNote').addEventListener('click', async () => {
   if (!activeRecord) return;
+  if (!currentProfile) {
+    modalStatus.textContent = text('signInToComment');
+    openAccount('signin');
+    return;
+  }
   const message = modalMessage.value.trim();
   if (!message) {
     modalStatus.textContent = text('emptyMessage');
     return;
   }
   const recordId = activeRecord.id;
-  const comments = [...(activeRecord.comments || []), {
+  const comment = {
     id: window.crypto?.randomUUID?.() || `comment-${Date.now()}`,
-    author: selectedAuthor,
+    authorId: currentProfile.id,
+    author: currentProfile.displayName,
+    avatarUrl: currentProfile.avatarUrl || '',
+    authorRole: currentProfile.role || 'guest',
     text: message,
     createdAt: Date.now()
-  }];
-  await window.LoveAlbum.update(recordId, { comments });
+  };
+  await window.LoveAlbum.addComment(recordId, comment);
   modalStatus.textContent = text('saved');
   modalMessage.value = '';
   await loadAlbum();
@@ -304,11 +573,76 @@ document.querySelector('#savePhotoNote').addEventListener('click', async () => {
   renderComments();
 });
 
-document.querySelector('#deletePhoto').addEventListener('click', async () => {
-  if (!activeRecord || !window.confirm(text('deleteConfirm'))) return;
+deletePhoto.addEventListener('click', async () => {
+  if (!activeRecord) return;
+  if (!isAlbumOwner()) {
+    modalStatus.textContent = text('ownerOnlyPhotos');
+    return;
+  }
+  if (!window.confirm(text('deleteConfirm'))) return;
   await window.LoveAlbum.remove(activeRecord.id);
   closeModal();
   await loadAlbum();
+});
+
+accountChip.addEventListener('click', () => openAccount());
+composerIdentity.addEventListener('click', () => openAccount());
+document.querySelector('#accountClose').addEventListener('click', closeAccount);
+document.querySelector('#accountBackdrop').addEventListener('click', closeAccount);
+document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.authMode)));
+document.querySelector('#readerClose').addEventListener('click', closeCommentReader);
+readerDelete.addEventListener('click', () => deleteOwnComment(activeReaderComment));
+commentReader.addEventListener('click', (event) => { if (event.target === commentReader) closeCommentReader(); });
+
+accountPhoto.addEventListener('change', () => {
+  const file = accountPhoto.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => setAvatarElement(accountPhotoPreview, { displayName: accountDisplayName.value, avatarUrl: reader.result });
+  reader.readAsDataURL(file);
+});
+
+accountForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  accountStatus.textContent = '';
+  accountSubmit.disabled = true;
+  try {
+    if (authMode === 'profile') {
+      currentProfile = await window.LoveCloud.updateProfile({ displayName: accountDisplayName.value.trim(), avatarFile: accountPhoto.files?.[0] });
+      accountStatus.textContent = text('profileSaved');
+      renderAccount();
+      return;
+    }
+    if (authMode === 'signup') {
+      const result = await window.LoveCloud.signUp({
+        email: accountEmail.value.trim(),
+        password: accountPassword.value,
+        displayName: accountDisplayName.value.trim(),
+        avatarFile: accountPhoto.files?.[0]
+      });
+      if (result.needsEmailConfirmation) {
+        setAuthMode('signin');
+        accountStatus.textContent = text('confirmEmail');
+        return;
+      }
+      currentProfile = result.profile;
+    } else {
+      currentProfile = await window.LoveCloud.signIn({ email: accountEmail.value.trim(), password: accountPassword.value });
+    }
+    renderAccount();
+    closeAccount();
+  } catch (error) {
+    accountStatus.textContent = error.message || String(error);
+  } finally {
+    accountSubmit.disabled = false;
+  }
+});
+
+accountSignOut.addEventListener('click', async () => {
+  await window.LoveCloud.signOut();
+  currentProfile = null;
+  renderAccount();
+  closeAccount();
 });
 
 document.addEventListener('pointermove', (event) => {
@@ -320,10 +654,83 @@ document.querySelectorAll('button,a').forEach((element) => {
   element.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
 });
 
+const albumClickCanvas = document.querySelector('#albumClickEffects');
+const albumClickContext = albumClickCanvas.getContext('2d');
+const albumClickParticles = [];
+let albumClickAnimationFrame = 0;
+
+function resizeAlbumClickCanvas() {
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  albumClickCanvas.width = window.innerWidth * ratio;
+  albumClickCanvas.height = window.innerHeight * ratio;
+  albumClickContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+function animateAlbumClickParticles() {
+  albumClickContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  for (let index = albumClickParticles.length - 1; index >= 0; index -= 1) {
+    const particle = albumClickParticles[index];
+    particle.age += 1;
+    const progress = particle.age / particle.life;
+    if (progress >= 1) {
+      albumClickParticles.splice(index, 1);
+      continue;
+    }
+    const forming = Math.min(1, progress / .28);
+    const scatter = Math.max(0, (progress - .32) / .68);
+    const ease = 1 - Math.pow(1 - forming, 3);
+    const x = particle.originX + particle.targetX * ease + particle.velocityX * scatter * 22;
+    const y = particle.originY + particle.targetY * ease + particle.velocityY * scatter * 22 - scatter * 8;
+    const alpha = progress < .55 ? .85 : (1 - progress) / .45 * .85;
+    albumClickContext.beginPath();
+    albumClickContext.arc(x, y, particle.radius * (1 - scatter * .35), 0, Math.PI * 2);
+    albumClickContext.fillStyle = particle.color.replace('ALPHA', alpha.toFixed(3));
+    albumClickContext.shadowColor = 'rgba(189,167,125,.55)';
+    albumClickContext.shadowBlur = 7;
+    albumClickContext.fill();
+  }
+  albumClickContext.shadowBlur = 0;
+  if (albumClickParticles.length) albumClickAnimationFrame = requestAnimationFrame(animateAlbumClickParticles);
+  else albumClickAnimationFrame = 0;
+}
+
+function createAlbumClickHeart(x, y) {
+  const points = 24;
+  for (let index = 0; index < points; index += 1) {
+    const angle = Math.PI * 2 * index / points;
+    const heartX = 16 * Math.pow(Math.sin(angle), 3);
+    const heartY = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+    const length = Math.hypot(heartX, heartY) || 1;
+    albumClickParticles.push({
+      originX:x, originY:y,
+      targetX:heartX * .72, targetY:heartY * .72,
+      velocityX:heartX / length + (Math.random() - .5) * .25,
+      velocityY:heartY / length + (Math.random() - .5) * .25,
+      radius:index % 4 === 0 ? 1.7 : 1.05,
+      color:index % 5 === 0 ? 'rgba(112,42,58,ALPHA)' : 'rgba(213,190,143,ALPHA)',
+      age:0, life:54 + Math.random() * 12
+    });
+  }
+  if (!albumClickAnimationFrame) albumClickAnimationFrame = requestAnimationFrame(animateAlbumClickParticles);
+}
+
+resizeAlbumClickCanvas();
+window.addEventListener('resize', resizeAlbumClickCanvas);
+window.addEventListener('pointerdown', (event) => {
+  if (event.button !== undefined && event.button !== 0) return;
+  createAlbumClickHeart(event.clientX, event.clientY);
+}, { passive:true });
+
 let savedLanguage = 'de';
 try { savedLanguage = localStorage.getItem('leo-language') || 'de'; } catch (error) { /* Use German. */ }
-try { selectedAuthor = localStorage.getItem('leo-album-author') || 'Alex'; } catch (error) { /* Use Alex. */ }
-setAuthor(selectedAuthor);
 setLanguage(savedLanguage);
+window.LoveCloud.getCurrentProfile().then((profile) => {
+  currentProfile = profile;
+  renderAccount();
+});
+window.LoveCloud.onAuthChange((profile) => {
+  currentProfile = profile;
+  renderAccount();
+});
 loadAlbum();
 window.addEventListener('pageshow', loadAlbum);

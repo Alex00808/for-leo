@@ -14,14 +14,21 @@
 <body>
   <div class="album-noise" aria-hidden="true"></div>
   <div class="album-cursor" aria-hidden="true"></div>
+  <canvas id="albumClickEffects" aria-hidden="true"></canvas>
 
   <nav class="album-nav">
     <a class="album-mark" href="index.html">L <span>AND</span> A</a>
     <p data-i18n="navTitle">Unser Fotoalbum</p>
-    <div class="album-languages" aria-label="Language selector">
-      <button type="button" data-lang="de" class="active">🇩🇪 <b>DE</b></button>
-      <button type="button" data-lang="en">🇬🇧 <b>EN</b></button>
-      <button type="button" data-lang="zh">🇨🇳 <b>中</b></button>
+    <div class="album-nav-actions">
+      <button class="account-chip" id="accountChip" type="button">
+        <span class="account-avatar" id="accountAvatar">?</span>
+        <span class="account-copy"><small id="accountRole">GAST</small><b id="accountName" data-i18n="signIn">Anmelden</b></span>
+      </button>
+      <div class="album-languages" aria-label="Language selector">
+        <button type="button" data-lang="de" class="active">🇩🇪 <b>DE</b></button>
+        <button type="button" data-lang="en">🇬🇧 <b>EN</b></button>
+        <button type="button" data-lang="zh">🇨🇳 <b>中</b></button>
+      </div>
     </div>
   </nav>
 
@@ -103,11 +110,11 @@
       </div>
       <div class="comment-composer">
         <div class="composer-heading">
-          <p data-i18n="commentAs">Wer hinterlässt diese Nachricht?</p>
-          <div class="author-switch" id="authorSwitch">
-            <button type="button" data-author="Alex" class="active">ALEX</button>
-            <button type="button" data-author="Leo">LEO</button>
-          </div>
+          <p data-i18n="commentAs">Du schreibst als</p>
+          <button class="composer-identity" id="composerIdentity" type="button">
+            <span class="composer-avatar" id="composerAvatar">?</span>
+            <span><b id="composerName" data-i18n="guestName">Noch nicht angemeldet</b><small data-i18n="changeAccount">Konto öffnen</small></span>
+          </button>
         </div>
         <textarea id="modalMessage" maxlength="1200" data-i18n-placeholder="modalPlaceholder" placeholder="Schreib hier die Geschichte hinter diesem Foto ..."></textarea>
         <div class="modal-actions">
@@ -119,6 +126,62 @@
     </aside>
   </div>
 
+  <div class="account-modal" id="accountModal" aria-hidden="true">
+    <button class="account-backdrop" id="accountBackdrop" type="button" aria-label="Close"></button>
+    <section class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <button class="account-close" id="accountClose" type="button" aria-label="Close">×</button>
+      <p class="account-kicker" data-i18n="accountKicker">EIN NAME FÜR DIE ERINNERUNG</p>
+      <h2 id="accountTitle" data-i18n="accountTitle">Komm herein,<br><em>wir merken uns dich.</em></h2>
+      <p class="account-intro" data-i18n="accountIntro">Nach dem Anmelden erscheinen dein Name und dein Bild automatisch bei jeder Nachricht.</p>
+      <div class="auth-tabs" id="authTabs">
+        <button type="button" class="active" data-auth-mode="signin" data-i18n="signIn">Anmelden</button>
+        <button type="button" data-auth-mode="signup" data-i18n="signUp">Registrieren</button>
+      </div>
+      <form class="account-form" id="accountForm">
+        <label class="profile-photo-field" id="profilePhotoField">
+          <input id="accountPhoto" type="file" accept="image/*" hidden>
+          <span class="profile-photo-preview" id="profilePhotoPreview">+</span>
+          <span><b data-i18n="chooseAvatar">Profilbild wählen</b><small data-i18n="avatarHint">Ein echtes Foto oder etwas, das nach dir aussieht.</small></span>
+        </label>
+        <label class="account-field" id="accountNameField"><span data-i18n="displayName">Dein Name</span><input id="accountDisplayName" type="text" maxlength="40" autocomplete="name"></label>
+        <label class="account-field"><span>E-Mail</span><input id="accountEmail" type="email" autocomplete="email" required></label>
+        <label class="account-field"><span data-i18n="password">Passwort</span><input id="accountPassword" type="password" minlength="6" autocomplete="current-password" required></label>
+        <p class="account-status" id="accountStatus"></p>
+        <button class="pill-button primary account-submit" id="accountSubmit" type="submit"><span data-i18n="signIn">Anmelden</span><i>→</i></button>
+        <button class="account-signout" id="accountSignOut" type="button" data-i18n="signOut">Abmelden</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="comment-reader" id="commentReader" aria-hidden="true">
+    <button class="reader-close" id="readerClose" type="button" aria-label="Close">×</button>
+    <div class="reader-atmosphere" aria-hidden="true">
+      <div class="reader-photo-ghost" id="readerPhotoGhost"></div>
+      <div class="reader-film-frame"></div>
+      <div class="reader-orbit reader-orbit-one"></div>
+      <div class="reader-orbit reader-orbit-two"></div>
+      <div class="reader-light-sweep"></div>
+      <div class="reader-grain"></div>
+    </div>
+    <div class="reader-glow" aria-hidden="true"></div>
+    <article class="reader-card">
+      <div class="reader-meta-line"><span id="readerMemory">MEMORY 001</span><i></i><span id="readerRole">GUEST</span></div>
+      <header>
+        <span class="reader-avatar" id="readerAvatar">?</span>
+        <div><b id="readerAuthor"></b><time id="readerTime"></time></div>
+      </header>
+      <div class="reader-quote" aria-hidden="true">&ldquo;</div>
+      <p id="readerMessage"></p>
+      <footer>
+        <small data-i18n="readerHint">Eine Nachricht, die bei diesem Bild bleibt.</small>
+        <button class="reader-delete" id="readerDelete" type="button" data-i18n="deleteOwnComment">Meine Nachricht löschen</button>
+      </footer>
+    </article>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="album-cloud.js"></script>
   <script src="album-store.js"></script>
   <script src="album.js"></script>
 </body>

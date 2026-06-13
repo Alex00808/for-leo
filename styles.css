@@ -423,6 +423,14 @@ body.is-chinese .opening-copy .eyebrow { letter-spacing: .14em; font-size: 1rem;
 .album-frame { position: relative; min-width: 0; padding: 0; border: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
 .album-frame::after { content: ""; position: absolute; inset: 2% -2% 12%; z-index: -1; border-radius: 45%; background: rgba(189,167,125,.12); filter: blur(28px); opacity: .35; transition: opacity .5s, transform .5s; }
 .album-frame:hover::after { opacity: .7; transform: translateY(12px) scale(1.04); }
+.album-frame.owner-locked { cursor:default; }
+.album-frame.owner-locked:hover::after { opacity:.35; transform:none; }
+.album-frame.owner-locked:hover .album-photo { border-color:rgba(238,233,223,.2); box-shadow:0 28px 70px rgba(0,0,0,.28); }
+.album-frame-one.owner-locked:hover .album-photo { transform:rotate(-1.4deg); }
+.album-frame-two.owner-locked:hover .album-photo { transform:translateY(2.3rem) rotate(.8deg); }
+.album-frame-three.owner-locked:hover .album-photo { transform:rotate(1.2deg); }
+.album-frame.owner-locked:hover .album-photo::after { transform:translateX(-55%); }
+.album-frame.owner-locked:hover .album-placeholder i { transform:none; }
 .album-photo { position: relative; display: block; aspect-ratio: 4 / 5; padding: .8rem; border: 1px solid rgba(238,233,223,.2); background: linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.018)); box-shadow: 0 28px 70px rgba(0,0,0,.28); overflow: hidden; transition: transform .65s cubic-bezier(.16,1,.3,1), border-color .45s, box-shadow .45s; }
 .album-frame-one .album-photo { transform: rotate(-1.4deg); }
 .album-frame-two .album-photo { transform: translateY(2.3rem) rotate(.8deg); }
