@@ -6,12 +6,39 @@
   <meta name="theme-color" content="#0b0b0b">
   <meta name="description" content="A private love letter for Leo.">
   <title>Für Leo, mit Liebe.</title>
+  <script>
+    try {
+      const curtainUrl = new URL(window.location.href);
+      if (curtainUrl.searchParams.get('curtain') === '1') {
+        document.documentElement.classList.add('curtain-preload');
+      }
+    } catch (error) { /* Continue without the arrival transition. */ }
+  </script>
+  <style>
+    html.curtain-preload,
+    html.curtain-preload body {
+      background-color: #190208 !important;
+      background-image:
+        radial-gradient(ellipse 22% 115% at 18% 48%, rgba(119, 18, 43, .2), transparent 72%),
+        radial-gradient(ellipse 18% 120% at 50% 48%, rgba(99, 12, 35, .16), transparent 74%),
+        radial-gradient(ellipse 22% 115% at 82% 48%, rgba(119, 18, 43, .2), transparent 72%),
+        linear-gradient(90deg, #080003, #2b0510 18%, #0a0004 38%, #2a050f 62%, #080003 82%, #1c0209) !important;
+    }
+    html.curtain-preload body > :not(.theater-transition):not(script) { visibility: hidden !important; }
+    html.curtain-preload .theater-transition { visibility: visible !important; opacity: 1 !important; }
+  </style>
+  <link rel="preload" href="assets/red-curtains-texture.jpg" as="image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="locked">
+  <script>
+    if (document.documentElement.classList.contains('curtain-preload')) {
+      document.body.classList.add('curtain-arrival', 'curtain-active', 'curtain-closing');
+    }
+  </script>
   <div class="noise" aria-hidden="true"></div>
   <div class="cursor" aria-hidden="true"><span></span></div>
   <div class="progress" aria-hidden="true"><span></span></div>
@@ -40,6 +67,31 @@
     <button type="button" data-lang="de" class="active" aria-label="Deutsch" aria-pressed="true"><span>🇩🇪</span><b>DE</b></button>
     <button type="button" data-lang="en" aria-label="English" aria-pressed="false"><span>🇬🇧</span><b>EN</b></button>
     <button type="button" data-lang="zh" aria-label="中文" aria-pressed="false"><span>🇨🇳</span><b>中</b></button>
+  </div>
+
+  <div class="theater-transition" id="theaterTransition" aria-hidden="true">
+    <div class="curtain-stage-light"></div>
+    <div class="curtain-top-drape">
+      <svg viewBox="0 0 1600 220" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <clipPath id="curtainTopShape">
+            <path d="M0 0H1600V96C1450 78 1370 132 1205 110C1040 88 938 145 800 118C650 88 535 141 388 110C238 79 132 133 0 101Z"/>
+          </clipPath>
+          <linearGradient id="curtainTopShade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#140006" stop-opacity=".72"/>
+            <stop offset=".42" stop-color="#681327" stop-opacity=".08"/>
+            <stop offset="1" stop-color="#090003" stop-opacity=".78"/>
+          </linearGradient>
+        </defs>
+        <g clip-path="url(#curtainTopShape)">
+          <image href="assets/red-curtains-texture.jpg" width="1600" height="220" preserveAspectRatio="xMidYMid slice"/>
+          <rect width="1600" height="220" fill="url(#curtainTopShade)"/>
+        </g>
+        <path class="curtain-top-shadow" d="M0 101C132 133 238 79 388 110C535 141 650 88 800 118C938 145 1040 88 1205 110C1370 132 1450 78 1600 96"/>
+      </svg>
+    </div>
+    <div class="curtain-panel curtain-left"><i></i><b></b></div>
+    <div class="curtain-panel curtain-right"><i></i><b></b></div>
   </div>
 
   <section class="prologue" id="prologue" aria-label="Opening">
@@ -86,16 +138,12 @@
       <b></b>
       <div><span>SHENZHEN<small>CHINA · ALEX</small><time data-city-clock="shenzhen">00:00:00</time></span><i></i></div>
     </div>
-    <p class="sound-note reveal-first" data-i18n="headphones">Kopfhörer empfohlen · Für den schönsten Moment</p>
   </section>
 
   <main id="mainContent">
     <nav class="nav">
       <a class="monogram" href="#beginning" aria-label="Back to beginning">L <span>AND</span> A</a>
       <p>Für Leo, mit Liebe.</p>
-      <button class="sound-toggle" id="soundToggle" type="button" aria-label="Toggle ambient sound">
-        <span></span><span></span><span></span><span></span>
-      </button>
     </nav>
 
     <section class="chapter opening-chapter" id="beginning">
@@ -150,8 +198,34 @@
             <span class="visual-index">I</span>
             <div class="light-leak"></div>
             <div class="visual-grid"></div>
+            <div class="memory-signal signal-distance" aria-hidden="true">
+              <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="distanceSignalGold" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#784a32" stop-opacity=".35" />
+                    <stop offset=".45" stop-color="#e5bd73" stop-opacity=".96" />
+                    <stop offset="1" stop-color="#fff4c7" stop-opacity=".42" />
+                  </linearGradient>
+                  <filter id="distanceSignalGlow"><feGaussianBlur stdDeviation="8" /></filter>
+                </defs>
+                <path class="signal-globe-line" d="M70 710 C220 310 680 170 930 380" />
+                <path id="distanceRoute" class="signal-route-glow" d="M145 720 C315 430 660 245 860 345" />
+                <path class="signal-route" d="M145 720 C315 430 660 245 860 345" />
+                <circle class="signal-city-pulse city-pulse-left" cx="145" cy="720" r="34" />
+                <circle class="signal-city-pulse city-pulse-right" cx="860" cy="345" r="34" />
+                <circle class="signal-city-dot" cx="145" cy="720" r="7" />
+                <circle class="signal-city-dot" cx="860" cy="345" r="7" />
+                <circle class="signal-traveller" r="6">
+                  <animateMotion dur="5.8s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines=".42 0 .25 1">
+                    <mpath href="#distanceRoute" />
+                  </animateMotion>
+                </circle>
+              </svg>
+              <div class="signal-city city-left"><span>SHENZHEN</span><b>ALEX · 22°32′N</b></div>
+              <div class="signal-city city-right"><span>HEILBRONN</span><b>LEO · 49°08′N</b></div>
+              <div class="signal-caption"><i></i> 8,900 KM · STILL CONNECTED</div>
+            </div>
             <div class="visual-spark spark-one"></div><div class="visual-spark spark-two"></div><div class="visual-spark spark-three"></div>
-            <div class="visual-sweep"></div>
             <div class="cursor-light"></div>
           </div>
           <div class="memory-copy">
@@ -171,8 +245,20 @@
             <span class="visual-index">II</span>
             <div class="light-leak"></div>
             <div class="visual-grid"></div>
+            <div class="memory-signal signal-union" aria-hidden="true">
+              <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+                <circle class="union-orbit orbit-a" cx="500" cy="500" r="270" />
+                <circle class="union-orbit orbit-l" cx="500" cy="500" r="184" />
+                <circle class="union-core" cx="500" cy="500" r="72" />
+                <path class="union-axis" d="M160 500 H840 M500 160 V840" />
+                <g class="union-node union-node-a"><circle cx="250" cy="500" r="21" /><text x="250" y="508">A</text></g>
+                <g class="union-node union-node-l"><circle cx="750" cy="500" r="21" /><text x="750" y="508">L</text></g>
+                <circle class="union-pulse" cx="500" cy="500" r="92" />
+              </svg>
+              <div class="union-date"><small>WE BECAME</small><strong>07 · 05</strong><span>2026</span></div>
+              <div class="signal-caption"><i></i> TWO TIME ZONES · ONE “US”</div>
+            </div>
             <div class="visual-spark spark-one"></div><div class="visual-spark spark-two"></div><div class="visual-spark spark-three"></div>
-            <div class="visual-sweep"></div>
             <div class="cursor-light"></div>
           </div>
         </article>
@@ -182,8 +268,18 @@
             <span class="visual-index">III</span>
             <div class="light-leak"></div>
             <div class="visual-grid"></div>
+            <div class="memory-signal signal-frequency" aria-hidden="true">
+              <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+                <path class="frequency-baseline" d="M100 500 H900" />
+                <path class="frequency-wave frequency-wave-back" d="M100 500 C145 500 145 420 190 420 S235 590 280 590 325 350 370 350 415 650 460 650 505 430 550 430 595 555 640 555 685 465 730 465 775 515 820 515 855 500 900 500" />
+                <path class="frequency-wave" d="M100 500 C145 500 145 420 190 420 S235 590 280 590 325 350 370 350 415 650 460 650 505 430 550 430 595 555 640 555 685 465 730 465 775 515 820 515 855 500 900 500" />
+                <g class="frequency-node node-a"><circle cx="100" cy="500" r="28" /><text x="100" y="510">A</text></g>
+                <g class="frequency-node node-l"><circle cx="900" cy="500" r="28" /><text x="900" y="510">L</text></g>
+              </svg>
+              <div class="frequency-copy"><small>PRIVATE FREQUENCY</small><strong>only we get it.</strong></div>
+              <div class="signal-caption"><i></i> HUMOUR · WARMTH · OUR LANGUAGE</div>
+            </div>
             <div class="visual-spark spark-one"></div><div class="visual-spark spark-two"></div><div class="visual-spark spark-three"></div>
-            <div class="visual-sweep"></div>
             <div class="cursor-light"></div>
           </div>
           <div class="memory-copy">
@@ -389,8 +485,8 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
   <script src="album-cloud.js"></script>
   <script src="album-store.js"></script>
   <script src="script.js"></script>

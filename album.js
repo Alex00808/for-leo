@@ -98,6 +98,7 @@ Object.assign(albumTranslations.zh, {
 });
 
 const languageButtons = document.querySelectorAll('[data-lang]');
+const albumBody = document.body;
 const translatedElements = document.querySelectorAll('[data-i18n]');
 const translatedPlaceholders = document.querySelectorAll('[data-i18n-placeholder]');
 const pinnedCards = document.querySelectorAll('[data-featured-slot]');
@@ -720,6 +721,88 @@ window.addEventListener('pointerdown', (event) => {
   if (event.button !== undefined && event.button !== 0) return;
   createAlbumClickHeart(event.clientX, event.clientY);
 }, { passive:true });
+
+let albumCurtainTransitionRunning = false;
+
+function clearAlbumCurtainArrivalMarker() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('curtain') !== '1') return;
+    url.searchParams.delete('curtain');
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch (error) { /* Keep the current URL if it cannot be normalized. */ }
+}
+
+function finishAlbumCurtainOpening() {
+  document.documentElement.classList.remove('curtain-preload');
+  albumBody.classList.remove('curtain-active', 'curtain-opening', 'curtain-closing', 'curtain-arrival');
+  albumCurtainTransitionRunning = false;
+}
+
+function waitForAlbumCurtainTexture() {
+  const texture = new Image();
+  texture.src = 'assets/red-curtains-texture.jpg';
+  const decoded = typeof texture.decode === 'function'
+    ? texture.decode().catch(() => undefined)
+    : new Promise((resolve) => {
+      texture.onload = resolve;
+      texture.onerror = resolve;
+    });
+  return Promise.race([
+    decoded,
+    new Promise((resolve) => window.setTimeout(resolve, 1200))
+  ]);
+}
+
+function waitForAlbumCurtainPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+async function openAlbumCurtainAfterArrival() {
+  if (!albumBody.classList.contains('curtain-arrival')) return;
+  albumCurtainTransitionRunning = true;
+  await waitForAlbumCurtainTexture();
+  await waitForAlbumCurtainPaint();
+  await new Promise((resolve) => window.setTimeout(resolve, 140));
+  clearAlbumCurtainArrivalMarker();
+  document.documentElement.classList.remove('curtain-preload');
+  albumBody.classList.remove('curtain-closing');
+  albumBody.classList.add('curtain-opening');
+  window.setTimeout(finishAlbumCurtainOpening, 2480);
+}
+
+function albumCurtainNavigationUrl(href) {
+  const url = new URL(href, window.location.href);
+  url.searchParams.set('curtain', '1');
+  return url.href;
+}
+
+function navigateWithAlbumCurtain(href) {
+  if (albumCurtainTransitionRunning) return;
+  albumCurtainTransitionRunning = true;
+  albumBody.classList.add('curtain-active');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => albumBody.classList.add('curtain-closing'));
+  });
+  window.setTimeout(() => {
+    window.location.assign(albumCurtainNavigationUrl(href));
+  }, 1450);
+}
+
+openAlbumCurtainAfterArrival();
+
+document.querySelectorAll('a[href]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (link.target && link.target !== '_self') return;
+    const rawHref = link.getAttribute('href');
+    if (!rawHref || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:') || rawHref.startsWith('javascript:')) return;
+    event.preventDefault();
+    navigateWithAlbumCurtain(link.href);
+  });
+});
 
 let savedLanguage = 'de';
 try { savedLanguage = localStorage.getItem('leo-language') || 'de'; } catch (error) { /* Use German. */ }

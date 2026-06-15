@@ -1,7 +1,7 @@
 const body = document.body;
 const prologue = document.querySelector('#prologue');
 const enterButton = document.querySelector('#enterButton');
-const soundToggle = document.querySelector('#soundToggle');
+const theaterTransition = document.querySelector('#theaterTransition');
 const yesButton = document.querySelector('#yesButton');
 const loveReveal = document.querySelector('#loveReveal');
 const closeReveal = document.querySelector('#closeReveal');
@@ -302,10 +302,6 @@ Object.entries(polishedCopy).forEach(([language, copy]) => Object.assign(transla
 
 let currentLanguage = 'de';
 
-let audioContext;
-let ambientGain;
-let isMuted = false;
-
 function setLanguage(language, animate = true) {
   if (!translations[language]) return;
   if (animate) body.classList.add('language-changing');
@@ -523,38 +519,128 @@ window.LoveCloud?.onAuthChange?.((profile) => {
 });
 window.addEventListener('pageshow', loadFeaturedPhotos);
 
-function createAmbientSound() {
-  if (audioContext) return;
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  ambientGain = audioContext.createGain();
-  ambientGain.gain.value = 0.025;
-  ambientGain.connect(audioContext.destination);
+let curtainTransitionRunning = false;
 
-  [110, 164.81, 220].forEach((frequency, index) => {
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = index === 1 ? 'sine' : 'triangle';
-    oscillator.frequency.value = frequency;
-    gain.gain.value = index === 0 ? 0.2 : 0.08;
-    oscillator.connect(gain);
-    gain.connect(ambientGain);
-    oscillator.start();
+function clearCurtainArrivalMarker() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('curtain') !== '1') return;
+    url.searchParams.delete('curtain');
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch (error) { /* Keep the current URL if it cannot be normalized. */ }
+}
+
+function finishCurtainOpening() {
+  document.documentElement.classList.remove('curtain-preload');
+  body.classList.remove('curtain-active', 'curtain-opening', 'curtain-closing', 'curtain-arrival');
+  prologue.classList.remove('curtain-exit');
+  curtainTransitionRunning = false;
+}
+
+function waitForCurtainTexture() {
+  const texture = new Image();
+  texture.src = 'assets/red-curtains-texture.jpg';
+  const decoded = typeof texture.decode === 'function'
+    ? texture.decode().catch(() => undefined)
+    : new Promise((resolve) => {
+      texture.onload = resolve;
+      texture.onerror = resolve;
+    });
+  return Promise.race([
+    decoded,
+    new Promise((resolve) => window.setTimeout(resolve, 1200))
+  ]);
+}
+
+function waitForCurtainPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
   });
 }
 
-enterButton.addEventListener('click', () => {
-  createAmbientSound();
-  body.classList.remove('locked');
+async function openCurtainAfterArrival() {
+  if (!body.classList.contains('curtain-arrival')) return;
+  curtainTransitionRunning = true;
   body.classList.add('started');
+  body.classList.remove('locked');
   prologue.classList.add('opened');
-  window.setTimeout(() => document.querySelector('#beginning').scrollIntoView(), 550);
+  await waitForCurtainTexture();
+  await waitForCurtainPaint();
+  await new Promise((resolve) => window.setTimeout(resolve, 140));
+  clearCurtainArrivalMarker();
+  document.documentElement.classList.remove('curtain-preload');
+  body.classList.remove('curtain-closing');
+  body.classList.add('curtain-opening');
+  window.setTimeout(finishCurtainOpening, 2480);
+}
+
+function runCurtainTransition(onCovered, { exitPrologue = false, reopen = true } = {}) {
+  if (curtainTransitionRunning) return;
+  curtainTransitionRunning = true;
+  if (exitPrologue) prologue.classList.add('curtain-exit');
+  body.classList.add('curtain-active');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => body.classList.add('curtain-closing'));
+  });
+
+  window.setTimeout(() => {
+    onCovered?.();
+  }, 1450);
+
+  if (!reopen) return;
+
+  window.setTimeout(() => {
+    body.classList.remove('curtain-closing');
+    body.classList.add('curtain-opening');
+  }, 1780);
+
+  window.setTimeout(() => {
+    body.classList.remove('locked');
+    finishCurtainOpening();
+  }, 4200);
+}
+
+function curtainNavigationUrl(href) {
+  const url = new URL(href, window.location.href);
+  url.searchParams.set('curtain', '1');
+  return url.href;
+}
+
+openCurtainAfterArrival();
+
+enterButton.addEventListener('click', () => {
+  runCurtainTransition(() => {
+    body.classList.add('started');
+    prologue.classList.add('opened');
+    document.querySelector('#beginning').scrollIntoView({ behavior: 'auto' });
+  }, { exitPrologue: true });
 });
 
-soundToggle.addEventListener('click', () => {
-  createAmbientSound();
-  isMuted = !isMuted;
-  ambientGain.gain.setTargetAtTime(isMuted ? 0 : 0.025, audioContext.currentTime, 0.15);
-  soundToggle.classList.toggle('muted', isMuted);
+document.querySelectorAll('a[href]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (link.target && link.target !== '_self') return;
+    const rawHref = link.getAttribute('href');
+    if (!rawHref || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:') || rawHref.startsWith('javascript:')) return;
+
+    const destination = new URL(link.href, window.location.href);
+    const sameDocument = destination.pathname === window.location.pathname && destination.search === window.location.search;
+    if (sameDocument && destination.hash === window.location.hash) return;
+    event.preventDefault();
+
+    if (sameDocument && destination.hash) {
+      runCurtainTransition(() => {
+        history.pushState(null, '', destination.hash);
+        document.querySelector(destination.hash)?.scrollIntoView({ behavior: 'auto' });
+      });
+      return;
+    }
+
+    runCurtainTransition(() => {
+      window.location.assign(curtainNavigationUrl(destination.href));
+    }, { exitPrologue: !body.classList.contains('started'), reopen: false });
+  });
 });
 
 document.addEventListener('mousemove', (event) => {
@@ -579,6 +665,47 @@ document.querySelectorAll('.magnetic').forEach((element) => {
 
 const revealElements = document.querySelectorAll('[data-reveal]');
 
+const cinematicTextElements = document.querySelectorAll([
+  'main h2',
+  'main h3',
+  'main .eyebrow:not(.opening-salutation)',
+  'main .chapter-number',
+  'main .translation',
+  'main .our-dates',
+  'main .memory-date',
+  'main .memory-copy > p:last-child',
+  'main .memory-signal .signal-city',
+  'main .memory-signal .signal-caption',
+  'main .union-date',
+  'main .portrait-main',
+  'main .trait-list > div',
+  'main .future-intro',
+  'main .wish > span',
+  'main .wish-route',
+  'main .wish > p',
+  'main .archive-heading > p:last-child',
+  'main .album-toolbar',
+  'main .album-caption',
+  'main .archive-entry',
+  'main .finale-translation',
+  'main .signature'
+].join(','));
+
+cinematicTextElements.forEach((element, index) => {
+  const isTitle = element.matches('h2, h3, .portrait-main');
+  const isMeta = element.matches('.eyebrow, .chapter-number, .memory-date, .wish-route, .signal-city, .signal-caption, .wish > span, .album-caption');
+  const direction = index % 2 === 0 ? 'left' : 'right';
+
+  element.classList.add('cinematic-text', `cinematic-from-${direction}`);
+  if (isTitle) element.classList.add('cinematic-title');
+  else if (isMeta) element.classList.add('cinematic-meta');
+  else element.classList.add('cinematic-body');
+});
+
+function clamp(value, minimum = 0, maximum = 1) {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
 function updateRevealProgress() {
   const viewportHeight = window.innerHeight;
   revealElements.forEach((element) => {
@@ -588,6 +715,21 @@ function updateRevealProgress() {
     const rawProgress = (start - rect.top) / (start - end);
     const progress = Math.max(0, Math.min(1, rawProgress));
     element.style.setProperty('--reveal-progress', progress.toFixed(3));
+  });
+}
+
+function updateCinematicText() {
+  const viewportHeight = window.innerHeight;
+
+  cinematicTextElements.forEach((element) => {
+    const rect = element.getBoundingClientRect();
+    const start = viewportHeight * 0.96;
+    const end = viewportHeight * 0.52;
+    const progress = clamp((start - rect.top) / (start - end));
+    const velocity = Math.sin(progress * Math.PI);
+
+    element.style.setProperty('--text-progress', progress.toFixed(3));
+    element.style.setProperty('--text-velocity', velocity.toFixed(3));
   });
 }
 
@@ -603,6 +745,7 @@ function handleScroll() {
   });
 
   updateRevealProgress();
+  updateCinematicText();
 }
 
 window.addEventListener('scroll', handleScroll, { passive: true });
@@ -684,31 +827,285 @@ window.addEventListener('pointerdown', (event) => {
 }, { passive: true });
 
 if (window.matchMedia('(pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  document.querySelectorAll('.memory-visual').forEach((card) => {
-    card.addEventListener('pointerenter', () => card.classList.add('light-active'));
-    card.addEventListener('pointermove', (event) => {
-      const rect = card.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      const rotateY = (x - 0.5) * 7;
-      const rotateX = (0.5 - y) * 7;
-      card.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-      card.style.setProperty('--my', `${event.clientY - rect.top}px`);
-      card.style.transform = `perspective(1000px) rotateX(${rotateX * 0.65}deg) rotateY(${rotateY * 0.65}deg) translateZ(3px)`;
-    });
-    card.addEventListener('pointerleave', () => {
-      card.classList.remove('light-active');
-      card.style.transform = '';
-    });
-  });
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  let liquidBorderId = 0;
+  let lastLiquidPointerMove = 0;
+  window.addEventListener('pointermove', () => { lastLiquidPointerMove = performance.now(); }, { passive: true, capture: true });
 
-  document.querySelectorAll('.wish').forEach((card) => {
-    card.addEventListener('pointermove', (event) => {
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-      card.style.setProperty('--my', `${event.clientY - rect.top}px`);
+  function installLiquidBorder(element, options = {}) {
+    const svg = document.createElementNS(svgNamespace, 'svg');
+    const definitions = document.createElementNS(svgNamespace, 'defs');
+    const goldGradient = document.createElementNS(svgNamespace, 'radialGradient');
+    const fillPath = document.createElementNS(svgNamespace, 'path');
+    const glowPath = document.createElementNS(svgNamespace, 'path');
+    const wavePath = document.createElementNS(svgNamespace, 'path');
+    const highlightPath = document.createElementNS(svgNamespace, 'path');
+    const sparkGroup = document.createElementNS(svgNamespace, 'g');
+    const sparks = Array.from({ length: 10 }, (_, index) => {
+      const spark = document.createElementNS(svgNamespace, 'circle');
+      spark.classList.add('liquid-border-spark');
+      spark.setAttribute('r', String(.75 + (index % 3) * .28));
+      sparkGroup.append(spark);
+      return spark;
     });
-  });
+
+    svg.classList.add('liquid-border');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    const gradientId = `liquid-gold-${liquidBorderId += 1}`;
+    goldGradient.id = gradientId;
+    goldGradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    [['0%', '#fff8dc', '.72'], ['28%', '#f0c96d', '.58'], ['66%', '#bd7a28', '.24'], ['100%', '#6b350d', '0']].forEach(([offset, color, opacity]) => {
+      const stop = document.createElementNS(svgNamespace, 'stop');
+      stop.setAttribute('offset', offset);
+      stop.setAttribute('stop-color', color);
+      stop.setAttribute('stop-opacity', opacity);
+      goldGradient.append(stop);
+    });
+    definitions.append(goldGradient);
+    fillPath.classList.add('liquid-border-fill');
+    fillPath.style.fill = `url(#${gradientId})`;
+    glowPath.classList.add('liquid-border-glow');
+    wavePath.classList.add('liquid-border-wave');
+    highlightPath.classList.add('liquid-border-highlight');
+    svg.append(definitions, fillPath, glowPath, wavePath, highlightPath, sparkGroup);
+    element.append(svg);
+
+    const state = {
+      width: 1,
+      height: 1,
+      x: .5,
+      y: .5,
+      targetX: .5,
+      targetY: .5,
+      strength: 0,
+      targetStrength: 0,
+      phase: 0,
+      perimeter: 4,
+      center: 0,
+      targetCenter: 0,
+      active: false,
+      frame: 0
+    };
+
+    const updateSize = () => {
+      state.width = Math.max(1, element.clientWidth);
+      state.height = Math.max(1, element.clientHeight);
+      svg.setAttribute('viewBox', `0 0 ${state.width} ${state.height}`);
+      svg.setAttribute('width', String(state.width));
+      svg.setAttribute('height', String(state.height));
+      state.perimeter = 2 * (state.width + state.height);
+      state.center = normalizePerimeter(state.center);
+      state.targetCenter = normalizePerimeter(state.targetCenter);
+    };
+
+    function normalizePerimeter(value) {
+      const perimeter = Math.max(1, state.perimeter);
+      return ((value % perimeter) + perimeter) % perimeter;
+    }
+
+    const perimeterPoint = (value) => {
+      const position = normalizePerimeter(value);
+      if (position <= state.width) return { x: position, y: 0, nx: 0, ny: 1 };
+      if (position <= state.width + state.height) return { x: state.width, y: position - state.width, nx: -1, ny: 0 };
+      if (position <= state.width * 2 + state.height) return { x: state.width - (position - state.width - state.height), y: state.height, nx: 0, ny: -1 };
+      return { x: 0, y: state.height - (position - state.width * 2 - state.height), nx: 1, ny: 0 };
+    };
+
+    const smoothPerimeterPoint = (value) => {
+      const point = perimeterPoint(value);
+      const radius = Math.min(
+        Math.min(state.width, state.height) * .2,
+        Math.max(52, (options.depth || 58) * 1.38)
+      );
+      const corners = [
+        { position: 0, cx: radius, cy: radius, startAngle: Math.PI },
+        { position: state.width, cx: state.width - radius, cy: radius, startAngle: Math.PI * 1.5 },
+        { position: state.width + state.height, cx: state.width - radius, cy: state.height - radius, startAngle: 0 },
+        { position: state.width * 2 + state.height, cx: radius, cy: state.height - radius, startAngle: Math.PI * .5 }
+      ];
+
+      for (const corner of corners) {
+        const distance = ((normalizePerimeter(value) - corner.position + state.perimeter * 1.5) % state.perimeter) - state.perimeter / 2;
+        if (Math.abs(distance) > radius) continue;
+        const progress = (distance + radius) / (radius * 2);
+        const angle = corner.startAngle + progress * Math.PI * .5;
+        const x = corner.cx + Math.cos(angle) * radius;
+        const y = corner.cy + Math.sin(angle) * radius;
+        return {
+          x,
+          y,
+          rawX: point.x,
+          rawY: point.y,
+          nx: (corner.cx - x) / radius,
+          ny: (corner.cy - y) / radius
+        };
+      }
+
+      return { ...point, rawX: point.x, rawY: point.y };
+    };
+
+    const smoothPath = (points) => {
+      if (points.length < 2) return '';
+      let path = `M${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+      for (let index = 1; index < points.length - 1; index += 1) {
+        const point = points[index];
+        const next = points[index + 1];
+        const middleX = (point.x + next.x) / 2;
+        const middleY = (point.y + next.y) / 2;
+        path += ` Q${point.x.toFixed(2)} ${point.y.toFixed(2)} ${middleX.toFixed(2)} ${middleY.toFixed(2)}`;
+      }
+      const last = points[points.length - 1];
+      path += ` L${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+      return path;
+    };
+
+    const buildLiquidPatch = () => {
+      const halfSpan = Math.min(options.span || 150, state.perimeter * .19);
+      const maximumDepth = Math.min(options.depth || 58, state.width * .15, state.height * .15, 78);
+      const steps = 84;
+      const wavePoints = [];
+      const borderPoints = [];
+      const samples = [];
+
+      for (let index = 0; index <= steps; index += 1) {
+        const progress = index / steps;
+        const signed = progress * 2 - 1;
+        const perimeterPosition = state.center + signed * halfSpan;
+        const border = smoothPerimeterPoint(perimeterPosition);
+        const envelope = Math.pow(Math.cos(signed * Math.PI / 2), 2);
+        const broadWave = Math.sin(signed * 5.6 - state.phase * .72) * .045;
+        const fineWave = Math.sin(signed * 12.5 + state.phase) * .016;
+        const depth = maximumDepth * state.strength * envelope * (.84 + broadWave + fineWave);
+        const wave = { x: border.x + border.nx * depth, y: border.y + border.ny * depth };
+        wavePoints.push(wave);
+        borderPoints.push({ x: border.x, y: border.y });
+        samples.push({ border, wave, depth, signed });
+      }
+
+      const wave = smoothPath(wavePoints);
+      let fill = wave;
+      for (let index = borderPoints.length - 1; index >= 0; index -= 1) {
+        fill += ` L${borderPoints[index].x.toFixed(2)} ${borderPoints[index].y.toFixed(2)}`;
+      }
+      fill += ' Z';
+      return { wave, fill, samples, halfSpan };
+    };
+
+    const placeSparks = (samples) => {
+      sparks.forEach((spark, index) => {
+        const progress = (index + .7) / (sparks.length + .4);
+        const sampleIndex = Math.round(progress * (samples.length - 1));
+        const sample = samples[sampleIndex];
+        const inwardRatio = .18 + ((index * 37) % 58) / 100;
+        const tangentX = -sample.border.ny;
+        const tangentY = sample.border.nx;
+        const drift = Math.sin(state.phase * .52 + index * 1.8) * 3.5;
+        const x = sample.border.x + sample.border.nx * sample.depth * inwardRatio + tangentX * drift;
+        const y = sample.border.y + sample.border.ny * sample.depth * inwardRatio + tangentY * drift;
+        const flicker = .18 + .82 * Math.pow((Math.sin(state.phase * 1.45 + index * 2.08) + 1) / 2, 2);
+        spark.setAttribute('cx', x.toFixed(2));
+        spark.setAttribute('cy', y.toFixed(2));
+        spark.style.opacity = String(state.strength * flicker * .72);
+      });
+    };
+
+    const render = () => {
+      state.x += (state.targetX - state.x) * .14;
+      state.y += (state.targetY - state.y) * .14;
+      const perimeterDelta = ((state.targetCenter - state.center + state.perimeter * 1.5) % state.perimeter) - state.perimeter / 2;
+      state.center = normalizePerimeter(state.center + perimeterDelta * .14);
+      state.strength += (state.targetStrength - state.strength) * .105;
+      state.phase += .075;
+
+      element.style.setProperty('--mx', `${(state.x * 100).toFixed(2)}%`);
+      element.style.setProperty('--my', `${(state.y * 100).toFixed(2)}%`);
+      element.style.setProperty('--signal-x', `${((state.x - .5) * 12).toFixed(2)}px`);
+      element.style.setProperty('--signal-y', `${((state.y - .5) * 9).toFixed(2)}px`);
+      element.style.setProperty('--liquid-strength', state.strength.toFixed(3));
+
+      const patch = buildLiquidPatch();
+      goldGradient.setAttribute('cx', String(state.x * state.width));
+      goldGradient.setAttribute('cy', String(state.y * state.height));
+      goldGradient.setAttribute('r', String(Math.max(90, patch.halfSpan * 1.15)));
+      fillPath.setAttribute('d', patch.fill);
+      glowPath.setAttribute('d', patch.wave);
+      wavePath.setAttribute('d', patch.wave);
+      highlightPath.setAttribute('d', patch.wave);
+      placeSparks(patch.samples);
+
+      if (options.tilt) {
+        const amount = (options.tilt || .7) * state.strength;
+        const rotateY = (state.x - .5) * amount;
+        const rotateX = (.5 - state.y) * amount;
+        element.style.transform = `perspective(1400px) rotateX(${rotateX.toFixed(3)}deg) rotateY(${rotateY.toFixed(3)}deg) translateZ(1px)`;
+      }
+
+      if (state.active || state.strength > .002 || Math.abs(state.targetStrength - state.strength) > .002) {
+        state.frame = requestAnimationFrame(render);
+      } else {
+        state.frame = 0;
+        element.style.setProperty('--liquid-strength', '0');
+        sparks.forEach((spark) => { spark.style.opacity = '0'; });
+        if (options.tilt) element.style.transform = '';
+      }
+    };
+
+    const updatePointer = (event) => {
+      const rect = element.getBoundingClientRect();
+      state.targetX = clamp((event.clientX - rect.left) / rect.width);
+      state.targetY = clamp((event.clientY - rect.top) / rect.height);
+      const pixelX = state.targetX * rect.width;
+      const pixelY = state.targetY * rect.height;
+      const distances = {
+        top: pixelY,
+        right: rect.width - pixelX,
+        bottom: rect.height - pixelY,
+        left: pixelX
+      };
+      const edge = Object.keys(distances).reduce((closest, candidate) => distances[candidate] < distances[closest] ? candidate : closest, 'top');
+      if (edge === 'top') state.targetCenter = pixelX;
+      else if (edge === 'right') state.targetCenter = state.width + pixelY;
+      else if (edge === 'bottom') state.targetCenter = state.width + state.height + (state.width - pixelX);
+      else state.targetCenter = state.width * 2 + state.height + (state.height - pixelY);
+      state.targetCenter = normalizePerimeter(state.targetCenter);
+      state.targetStrength = clamp(1 - distances[edge] / (options.proximity || 150));
+    };
+
+    element.addEventListener('pointerenter', (event) => {
+      updateSize();
+      if (performance.now() - lastLiquidPointerMove > 140) return;
+      state.active = true;
+      element.classList.add('light-active');
+      updatePointer(event);
+      if (!state.frame) state.frame = requestAnimationFrame(render);
+    });
+    element.addEventListener('pointermove', (event) => {
+      state.active = true;
+      element.classList.add('light-active');
+      updatePointer(event);
+      if (!state.frame) state.frame = requestAnimationFrame(render);
+    });
+    element.addEventListener('pointerleave', () => {
+      state.active = false;
+      state.targetStrength = 0;
+      element.classList.remove('light-active');
+      if (!state.frame) state.frame = requestAnimationFrame(render);
+    });
+
+    updateSize();
+    fillPath.setAttribute('d', 'M0 0 Z');
+    glowPath.setAttribute('d', 'M0 0');
+    wavePath.setAttribute('d', 'M0 0');
+    highlightPath.setAttribute('d', 'M0 0');
+    requestAnimationFrame(() => requestAnimationFrame(updateSize));
+    window.addEventListener('load', updateSize, { once: true });
+    if ('ResizeObserver' in window) new ResizeObserver(updateSize).observe(element);
+  }
+
+  document.querySelectorAll('.memory-visual').forEach((card) => installLiquidBorder(card, { depth: 38, proximity: 170, span: 150, tilt: .65 }));
+  document.querySelectorAll('.wish').forEach((card) => installLiquidBorder(card, { depth: 22, proximity: 105, span: 90 }));
+  document.querySelectorAll('.album-photo').forEach((card) => installLiquidBorder(card, { depth: 28, proximity: 118, span: 102 }));
 }
 
 let catTimer;

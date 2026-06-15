@@ -6,12 +6,63 @@
   <meta name="theme-color" content="#0d090b">
   <meta name="description" content="The private photo album of Leo and Alex.">
   <title>Leo & Alex · Unser Album</title>
+  <script>
+    try {
+      const curtainUrl = new URL(window.location.href);
+      if (curtainUrl.searchParams.get('curtain') === '1') {
+        document.documentElement.classList.add('curtain-preload');
+      }
+    } catch (error) { /* Continue without the arrival transition. */ }
+  </script>
+  <style>
+    html.curtain-preload,
+    html.curtain-preload body {
+      background-color: #190208 !important;
+      background-image:
+        radial-gradient(ellipse 22% 115% at 18% 48%, rgba(119, 18, 43, .2), transparent 72%),
+        radial-gradient(ellipse 18% 120% at 50% 48%, rgba(99, 12, 35, .16), transparent 74%),
+        radial-gradient(ellipse 22% 115% at 82% 48%, rgba(119, 18, 43, .2), transparent 72%),
+        linear-gradient(90deg, #080003, #2b0510 18%, #0a0004 38%, #2a050f 62%, #080003 82%, #1c0209) !important;
+    }
+    html.curtain-preload body > :not(.theater-transition):not(script) { visibility: hidden !important; }
+    html.curtain-preload .theater-transition { visibility: visible !important; opacity: 1 !important; }
+  </style>
+  <link rel="preload" href="assets/red-curtains-texture.jpg" as="image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="album.css">
 </head>
 <body>
+  <script>
+    if (document.documentElement.classList.contains('curtain-preload')) {
+      document.body.classList.add('curtain-arrival', 'curtain-active', 'curtain-closing');
+    }
+  </script>
+  <div class="theater-transition" id="theaterTransition" aria-hidden="true">
+    <div class="curtain-stage-light"></div>
+    <div class="curtain-top-drape">
+      <svg viewBox="0 0 1600 220" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <clipPath id="albumCurtainTopShape">
+            <path d="M0 0H1600V96C1450 78 1370 132 1205 110C1040 88 938 145 800 118C650 88 535 141 388 110C238 79 132 133 0 101Z"/>
+          </clipPath>
+          <linearGradient id="albumCurtainTopShade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#140006" stop-opacity=".72"/>
+            <stop offset=".42" stop-color="#681327" stop-opacity=".08"/>
+            <stop offset="1" stop-color="#090003" stop-opacity=".78"/>
+          </linearGradient>
+        </defs>
+        <g clip-path="url(#albumCurtainTopShape)">
+          <image href="assets/red-curtains-texture.jpg" width="1600" height="220" preserveAspectRatio="xMidYMid slice"/>
+          <rect width="1600" height="220" fill="url(#albumCurtainTopShade)"/>
+        </g>
+        <path class="curtain-top-shadow" d="M0 101C132 133 238 79 388 110C535 141 650 88 800 118C938 145 1040 88 1205 110C1370 132 1450 78 1600 96"/>
+      </svg>
+    </div>
+    <div class="curtain-panel curtain-left"><i></i><b></b></div>
+    <div class="curtain-panel curtain-right"><i></i><b></b></div>
+  </div>
   <div class="album-noise" aria-hidden="true"></div>
   <div class="album-cursor" aria-hidden="true"></div>
   <canvas id="albumClickEffects" aria-hidden="true"></canvas>

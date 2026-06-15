@@ -7,6 +7,30 @@ body.modal-open,body.account-open,body.reader-open { overflow:hidden; }
 button,a,textarea { font:inherit; }
 button,a { color:inherit; }
 button { cursor:pointer; }
+.theater-transition { position:fixed; z-index:2400; inset:0; overflow:hidden; pointer-events:none; visibility:hidden; opacity:0; background:transparent; transition:opacity .22s linear,visibility 0s .22s; }
+body.curtain-active .theater-transition { visibility:visible; opacity:1; transition:opacity .2s linear,visibility 0s; }
+.curtain-stage-light { position:absolute; z-index:0; inset:0; opacity:0; background:radial-gradient(ellipse 24% 18% at 50% 2%,rgba(210,171,118,.15),transparent 72%); transition:opacity 1.05s ease; }
+body.curtain-closing .curtain-stage-light { opacity:.34; }
+body.curtain-opening .curtain-stage-light { opacity:0; transition-duration:1.8s; }
+.curtain-top-drape { position:absolute; z-index:5; top:-1px; left:-1.5%; width:103%; height:clamp(118px,17vh,190px); pointer-events:none; transform:translate3d(0,-112%,0) scaleY(.94); transform-origin:50% 0; filter:saturate(.72) brightness(.58) contrast(1.22) drop-shadow(0 24px 26px rgba(0,0,0,.72)); will-change:transform; transition:transform 1.32s cubic-bezier(.72,0,.2,1); }
+.curtain-top-drape svg { display:block; width:100%; height:100%; overflow:visible; }
+.curtain-top-shadow { fill:none; stroke:rgba(4,0,1,.88); stroke-width:18; stroke-linecap:round; filter:blur(12px); }
+body.curtain-closing .curtain-top-drape { transform:translate3d(0,0,0) scaleY(1); }
+body.curtain-opening .curtain-top-drape { transform:translate3d(0,-112%,0) scaleY(.94); transition-duration:2.08s; transition-delay:.16s; transition-timing-function:cubic-bezier(.42,0,.18,1); }
+.curtain-panel { position:absolute; z-index:2; top:-2.5%; bottom:-3.5%; width:52.8%; overflow:hidden; background-image:linear-gradient(90deg,rgba(16,1,5,.62),rgba(49,5,14,.08) 34%,rgba(9,0,3,.58)),linear-gradient(180deg,rgba(5,0,2,.1),transparent 45%,rgba(3,0,1,.52)),url("assets/red-curtains-texture.jpg"); background-size:100% 100%,100% 100%,cover; background-position:center; background-repeat:no-repeat; background-blend-mode:multiply,normal,normal; box-shadow:inset 0 0 95px rgba(5,0,2,.72),inset 0 -70px 90px rgba(3,0,1,.42),0 0 80px rgba(0,0,0,.74); filter:saturate(.74) brightness(.62) contrast(1.2); will-change:transform; transition:transform 1.38s cubic-bezier(.72,0,.2,1); }
+.curtain-panel::before { content:""; position:absolute; inset:0; opacity:.28; background:radial-gradient(ellipse 13% 105% at 19% 48%,rgba(255,190,169,.32),transparent 72%),radial-gradient(ellipse 10% 112% at 53% 48%,rgba(255,205,181,.2),transparent 74%),radial-gradient(ellipse 14% 108% at 83% 50%,rgba(225,139,132,.22),transparent 72%),linear-gradient(180deg,rgba(255,226,211,.08),transparent 18% 72%,rgba(0,0,0,.28)); mix-blend-mode:screen; filter:blur(12px); animation:albumCurtainVelvetBreath 8s ease-in-out infinite alternate; }
+.curtain-panel::after { content:""; position:absolute; inset:0; opacity:.3; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.48 .9' numOctaves='3' stitchTiles='stitchTiles'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.18'/%3E%3C/svg%3E"); mix-blend-mode:soft-light; }
+.curtain-panel>i { position:absolute; z-index:3; top:-4%; bottom:-4%; width:9%; opacity:.9; background:linear-gradient(90deg,rgba(0,0,0,.02),rgba(3,0,1,.82) 68%,rgba(0,0,0,.96)); filter:blur(9px); }
+.curtain-panel>b { position:absolute; z-index:3; left:0; right:0; bottom:-3%; height:19%; opacity:.72; background:radial-gradient(ellipse at 50% 100%,rgba(0,0,0,.82),transparent 72%); filter:blur(10px); }
+.curtain-left { left:0; border-radius:0 2.4% 3.8% 0/0 15% 21% 0; transform:translate3d(-103%,0,0) scaleX(.88); transform-origin:left center; }
+.curtain-right { right:0; border-radius:2.4% 0 0 3.8%/15% 0 0 21%; transform:translate3d(103%,0,0) scaleX(.88); transform-origin:right center; background-position:center; }
+.curtain-left>i { right:-1.8%; }
+.curtain-right>i { left:-1.8%; transform:scaleX(-1); }
+body.curtain-closing .curtain-left,body.curtain-closing .curtain-right { transform:translate3d(0,0,0) scaleX(1.025); }
+body.curtain-opening .curtain-panel { transition-duration:2.22s; transition-timing-function:cubic-bezier(.42,0,.18,1); }
+body.curtain-opening .curtain-left { transform:translate3d(-103%,0,0) scaleX(.88); }
+body.curtain-opening .curtain-right { transform:translate3d(103%,0,0) scaleX(.88); }
+@keyframes albumCurtainVelvetBreath { from { transform:translate3d(-1.2%,0,0) scaleX(1.01); opacity:.22; } to { transform:translate3d(1.2%,0,0) scaleX(.99); opacity:.34; } }
 .album-noise { position:fixed; z-index:1000; inset:0; opacity:.035; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 .album-cursor { position:fixed; z-index:1500; width:28px; height:28px; border:1px solid rgba(189,159,108,.8); border-radius:50%; pointer-events:none; transform:translate(-50%,-50%); transition:width .25s,height .25s,background .25s; }
 .album-cursor.hovered { width:48px; height:48px; background:rgba(189,159,108,.09); }
