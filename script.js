@@ -13,6 +13,8 @@ const translatablePlaceholders = document.querySelectorAll('[data-i18n-placehold
 const relationshipClocks = document.querySelectorAll('[data-clock]');
 const clickCanvas = document.querySelector('#clickEffects');
 const cityClocks = document.querySelectorAll('[data-city-clock]');
+const ambientWorld = document.querySelector('#ambientWorld');
+const ambientCanvas = document.querySelector('#ambientCanvas');
 const loveCat = document.querySelector('#loveCat');
 const catBubble = document.querySelector('#catBubble');
 const albumFrames = document.querySelectorAll('[data-photo-slot]');
@@ -706,30 +708,80 @@ function clamp(value, minimum = 0, maximum = 1) {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
+function easeOutQuart(value) {
+  const progress = clamp(value);
+  return 1 - Math.pow(1 - progress, 4);
+}
+
+function getRevealMetric(element, options = {}) {
+  const viewportHeight = window.innerHeight || 1;
+  const rect = element.getBoundingClientRect();
+  const {
+    start = 1.02,
+    finish = 0.66,
+    anchorRatio = 0.2,
+    anchorCap = 0.18,
+    forceTop = 0.5,
+    forceBottom = 0.92
+  } = options;
+  const anchorOffset = Math.min(Math.max(rect.height, 1) * anchorRatio, viewportHeight * anchorCap);
+  const anchor = rect.top + anchorOffset;
+  let rawProgress = clamp(((viewportHeight * start) - anchor) / (viewportHeight * (start - finish)));
+
+  // Large headings and panels should finish inside their own chapter, not halfway through the next one.
+  if (rect.top < viewportHeight * forceTop || rect.bottom < viewportHeight * forceBottom) {
+    rawProgress = 1;
+  }
+  if (rect.bottom < viewportHeight * 0.08) {
+    rawProgress = 1;
+  }
+  if (rect.top > viewportHeight * 1.14) {
+    rawProgress = 0;
+  }
+
+  return {
+    raw: rawProgress,
+    eased: easeOutQuart(rawProgress)
+  };
+}
+
 function updateRevealProgress() {
-  const viewportHeight = window.innerHeight;
   revealElements.forEach((element) => {
-    const rect = element.getBoundingClientRect();
-    const start = viewportHeight * 0.9;
-    const end = viewportHeight * 0.58;
-    const rawProgress = (start - rect.top) / (start - end);
-    const progress = Math.max(0, Math.min(1, rawProgress));
-    element.style.setProperty('--reveal-progress', progress.toFixed(3));
+    const metric = getRevealMetric(element, {
+      start: 1,
+      finish: 0.68,
+      anchorRatio: 0.18,
+      anchorCap: 0.16,
+      forceTop: 0.78,
+      forceBottom: 0.98
+    });
+    const pop = Math.sin(metric.raw * Math.PI);
+
+    element.style.setProperty('--reveal-progress', metric.eased.toFixed(3));
+    element.style.setProperty('--reveal-pop', pop.toFixed(3));
+    element.classList.toggle('is-revealed', metric.raw >= 0.985);
   });
 }
 
 function updateCinematicText() {
-  const viewportHeight = window.innerHeight;
-
   cinematicTextElements.forEach((element) => {
-    const rect = element.getBoundingClientRect();
-    const start = viewportHeight * 0.96;
-    const end = viewportHeight * 0.52;
-    const progress = clamp((start - rect.top) / (start - end));
-    const velocity = Math.sin(progress * Math.PI);
+    const isTitle = element.classList.contains('cinematic-title');
+    const metric = getRevealMetric(element, {
+      start: isTitle ? 1.08 : 1.02,
+      finish: isTitle ? 0.72 : 0.68,
+      anchorRatio: isTitle ? 0.14 : 0.2,
+      anchorCap: isTitle ? 0.14 : 0.18,
+      forceTop: isTitle ? 0.66 : 0.78,
+      forceBottom: isTitle ? 0.98 : 0.98
+    });
+    const velocity = Math.sin(metric.raw * Math.PI);
+    const flare = metric.raw > 0.04 && metric.raw < 0.96 ? velocity : 0;
 
-    element.style.setProperty('--text-progress', progress.toFixed(3));
+    element.style.setProperty('--text-progress', metric.eased.toFixed(3));
     element.style.setProperty('--text-velocity', velocity.toFixed(3));
+    element.style.setProperty('--text-pop', velocity.toFixed(3));
+    element.style.setProperty('--text-flare', flare.toFixed(3));
+    element.classList.toggle('is-revealed', metric.raw >= 0.985);
   });
 }
 
@@ -748,8 +800,369 @@ function handleScroll() {
   updateCinematicText();
 }
 
-window.addEventListener('scroll', handleScroll, { passive: true });
+let scrollFrame = 0;
+function requestScrollUpdate() {
+  if (scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = 0;
+    handleScroll();
+  });
+}
+
+window.addEventListener('scroll', requestScrollUpdate, { passive: true });
+window.addEventListener('resize', requestScrollUpdate);
+window.addEventListener('hashchange', () => requestAnimationFrame(handleScroll));
+document.fonts?.ready?.then(() => requestAnimationFrame(handleScroll));
 handleScroll();
+
+function setupAmbientWorld() {
+  if (!ambientWorld || !ambientCanvas) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const chapters = Array.from(document.querySelectorAll('[data-ambient]'));
+  const gl = ambientCanvas.getContext('webgl', {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: 'high-performance'
+  });
+
+  const setFallback = () => ambientWorld.classList.add('ambient-fallback');
+  if (!gl) {
+    setFallback();
+    return;
+  }
+
+  const vertexSource = `
+    attribute vec2 a_position;
+    void main() {
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+
+  const fragmentSource = `
+    precision highp float;
+
+    uniform vec2 u_resolution;
+    uniform vec2 u_mouse;
+    uniform float u_time;
+    uniform float u_theme;
+    uniform float u_scroll;
+
+    float hash(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+        u.y
+      );
+    }
+
+    float fbm(vec2 p) {
+      float value = 0.0;
+      float amplitude = 0.52;
+      mat2 rotate = mat2(0.82, -0.57, 0.57, 0.82);
+      for (int i = 0; i < 5; i++) {
+        value += amplitude * noise(p);
+        p = rotate * p * 2.02 + 9.17;
+        amplitude *= 0.48;
+      }
+      return value;
+    }
+
+    float ribbon(vec2 p, float angle, float offset, float width, float phase) {
+      vec2 direction = vec2(cos(angle), sin(angle));
+      vec2 normal = vec2(-direction.y, direction.x);
+      float axis = dot(p, direction);
+      float wave = sin(axis * 1.55 + phase) * 0.12 + sin(axis * 3.1 - phase * 0.62) * 0.035;
+      float distanceToRibbon = abs(dot(p, normal) - offset - wave);
+      return exp(-distanceToRibbon * distanceToRibbon / width);
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      vec2 p = uv - 0.5;
+      p.x *= u_resolution.x / u_resolution.y;
+
+      vec2 mouse = (u_mouse - 0.5) * vec2(0.12, -0.09);
+      float time = u_time * 0.045;
+      float theme = smoothstep(0.0, 1.0, u_theme);
+      float scrollBreath = sin(u_scroll * 6.28318);
+
+      vec2 fieldP = p + mouse;
+      float cloud = fbm(fieldP * 1.12 + vec2(time, -time * 0.62));
+      float cloudFine = fbm(fieldP * 2.35 + vec2(-time * 0.48, time * 0.72) + cloud * 0.36);
+
+      float silkA = ribbon(fieldP, 0.42, -0.08 + scrollBreath * 0.018, 0.11, time * 1.8 + cloud * 0.55);
+      float silkB = ribbon(fieldP, -0.72, 0.18, 0.16, -time * 1.35 + cloudFine * 0.35);
+      float silkC = ribbon(fieldP, 1.22, -0.34, 0.24, time * 0.85);
+      float silk = silkA * 0.52 + silkB * 0.32 + silkC * 0.2;
+
+      float leftWarm = exp(-dot(p - vec2(-0.55, 0.34), p - vec2(-0.55, 0.34)) * 1.55);
+      float rightWine = exp(-dot(p - vec2(0.55, -0.38), p - vec2(0.55, -0.38)) * 1.15);
+      float centerGlow = exp(-dot(p + mouse * 0.6, p + mouse * 0.6) * 1.8);
+
+      vec3 paperBase = vec3(0.925, 0.902, 0.855);
+      vec3 paperShadow = vec3(0.79, 0.74, 0.67);
+      vec3 paperGold = vec3(0.92, 0.72, 0.43);
+      vec3 paperWine = vec3(0.34, 0.10, 0.15);
+      vec3 lightScene = paperBase;
+      lightScene -= paperShadow * (0.04 + 0.055 * cloudFine);
+      lightScene += paperGold * (0.078 * leftWarm + 0.068 * silk);
+      lightScene += paperWine * (0.046 * rightWine);
+      lightScene += vec3(1.0, 0.94, 0.84) * centerGlow * 0.024;
+
+      vec3 nightBase = vec3(0.024, 0.022, 0.024);
+      vec3 nightWine = vec3(0.21, 0.045, 0.075);
+      vec3 nightGold = vec3(0.75, 0.55, 0.28);
+      vec3 nightBlue = vec3(0.045, 0.075, 0.082);
+      vec3 darkScene = nightBase;
+      darkScene += nightWine * (0.23 * rightWine + 0.14 * cloud);
+      darkScene += nightGold * (0.105 * silk + 0.07 * leftWarm);
+      darkScene += nightBlue * (0.115 * cloudFine);
+      darkScene -= vec3(0.015, 0.012, 0.014) * length(p);
+
+      vec3 color = mix(lightScene, darkScene, theme);
+
+      vec2 dustGrid = uv * vec2(95.0, 58.0);
+      vec2 dustId = floor(dustGrid);
+      vec2 dustUv = fract(dustGrid) - 0.5;
+      float dustRandom = hash(dustId);
+      float dustShape = smoothstep(0.055, 0.0, length(dustUv));
+      float dustGate = step(0.986, dustRandom);
+      float dustTwinkle = 0.35 + 0.65 * smoothstep(-0.3, 1.0, sin(u_time * (0.22 + dustRandom * 0.42) + dustRandom * 41.0));
+      vec3 dustColor = mix(vec3(0.52, 0.22, 0.26), vec3(1.0, 0.82, 0.46), dustRandom);
+      color += dustColor * dustShape * dustGate * dustTwinkle * mix(0.018, 0.06, theme);
+
+      float vignette = smoothstep(0.96, 0.22, length(p * vec2(0.9, 1.05)));
+      color *= mix(0.88, 1.05, vignette);
+      color += (hash(gl_FragCoord.xy + u_time) - 0.5) / 255.0;
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  function compileShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.warn(gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  const vertexShader = compileShader(gl.VERTEX_SHADER, vertexSource);
+  const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+  if (!vertexShader || !fragmentShader) {
+    setFallback();
+    return;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.warn(gl.getProgramInfoLog(program));
+    setFallback();
+    return;
+  }
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+
+  const positionLocation = gl.getAttribLocation(program, 'a_position');
+  const uniforms = {
+    resolution: gl.getUniformLocation(program, 'u_resolution'),
+    mouse: gl.getUniformLocation(program, 'u_mouse'),
+    time: gl.getUniformLocation(program, 'u_time'),
+    theme: gl.getUniformLocation(program, 'u_theme'),
+    scroll: gl.getUniformLocation(program, 'u_scroll')
+  };
+
+  let width = 0;
+  let height = 0;
+  let targetTheme = 0;
+  let currentTheme = 0;
+  let targetMouseX = 0.5;
+  let targetMouseY = 0.5;
+  let mouseX = 0.5;
+  let mouseY = 0.5;
+  let scrollProgress = 0;
+  let lastTime = performance.now();
+  let frameId = 0;
+
+  function resize() {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.55);
+    const nextWidth = Math.max(1, Math.floor(window.innerWidth * pixelRatio));
+    const nextHeight = Math.max(1, Math.floor(window.innerHeight * pixelRatio));
+    if (nextWidth === width && nextHeight === height) return;
+    width = nextWidth;
+    height = nextHeight;
+    ambientCanvas.width = width;
+    ambientCanvas.height = height;
+    gl.viewport(0, 0, width, height);
+  }
+
+  function updateAmbientState() {
+    const center = window.innerHeight * 0.5;
+    let closestDistance = Infinity;
+    let closestChapter = chapters[0];
+
+    chapters.forEach((chapter) => {
+      const rect = chapter.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      const distance = Math.abs(rect.top + rect.height * 0.5 - center);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestChapter = chapter;
+      }
+    });
+
+    targetTheme = closestChapter?.dataset.ambient === 'dark' ? 1 : 0;
+    body.dataset.ambient = targetTheme ? 'dark' : 'light';
+
+    const scrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    scrollProgress = clamp(window.scrollY / scrollable);
+
+    ambientWorld.style.setProperty('--ambient-x', `${(targetMouseX * 100).toFixed(1)}%`);
+    ambientWorld.style.setProperty('--ambient-y', `${(targetMouseY * 100).toFixed(1)}%`);
+    ambientWorld.style.setProperty('--ambient-shift-x', `${((targetMouseX - 0.5) * -10).toFixed(2)}px`);
+    ambientWorld.style.setProperty('--ambient-shift-y', `${((targetMouseY - 0.5) * -7).toFixed(2)}px`);
+  }
+
+  function render(now) {
+    const delta = Math.min(0.08, (now - lastTime) / 1000 || 0.016);
+    lastTime = now;
+    resize();
+
+    const easing = reduceMotion.matches ? 1 : 1 - Math.exp(-delta * 1.35);
+    currentTheme += (targetTheme - currentTheme) * easing;
+    mouseX += (targetMouseX - mouseX) * (reduceMotion.matches ? 1 : 1 - Math.exp(-delta * 3.2));
+    mouseY += (targetMouseY - mouseY) * (reduceMotion.matches ? 1 : 1 - Math.exp(-delta * 3.2));
+
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(uniforms.resolution, width, height);
+    gl.uniform2f(uniforms.mouse, mouseX, mouseY);
+    gl.uniform1f(uniforms.time, reduceMotion.matches ? 24 : now / 1000);
+    gl.uniform1f(uniforms.theme, currentTheme);
+    gl.uniform1f(uniforms.scroll, scrollProgress);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    if (!reduceMotion.matches && !document.hidden) {
+      frameId = requestAnimationFrame(render);
+    } else {
+      frameId = 0;
+    }
+  }
+
+  function start() {
+    if (!frameId) {
+      lastTime = performance.now();
+      frameId = requestAnimationFrame(render);
+    }
+  }
+
+  window.addEventListener('pointermove', (event) => {
+    targetMouseX = clamp(event.clientX / Math.max(1, window.innerWidth));
+    targetMouseY = clamp(event.clientY / Math.max(1, window.innerHeight));
+    updateAmbientState();
+    start();
+  }, { passive: true });
+
+  window.addEventListener('scroll', () => {
+    updateAmbientState();
+    start();
+  }, { passive: true });
+  window.addEventListener('resize', () => {
+    resize();
+    updateAmbientState();
+    start();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && frameId) {
+      cancelAnimationFrame(frameId);
+      frameId = 0;
+    } else {
+      updateAmbientState();
+      start();
+    }
+  });
+  reduceMotion.addEventListener?.('change', () => {
+    updateAmbientState();
+    start();
+  });
+
+  updateAmbientState();
+  resize();
+  start();
+}
+
+setupAmbientWorld();
+
+function setupSectionAtmospheres() {
+  const sections = Array.from(document.querySelectorAll('.chapter'));
+  if (!sections.length) return;
+
+  let pointerX = 0.72;
+  let pointerY = 0.28;
+  let frameId = 0;
+
+  const update = () => {
+    frameId = 0;
+    const viewportHeight = Math.max(1, window.innerHeight);
+    const viewportWidth = Math.max(1, window.innerWidth);
+    const screenX = pointerX * viewportWidth;
+    const screenY = pointerY * viewportHeight;
+
+    sections.forEach((section) => {
+      const rect = section.getBoundingClientRect();
+      if (rect.bottom < -240 || rect.top > viewportHeight + 240) return;
+
+      const localX = clamp((screenX - rect.left) / Math.max(1, rect.width));
+      const localY = clamp((screenY - rect.top) / Math.max(1, rect.height));
+      const centerDistance = Math.abs((rect.top + rect.height / 2) - viewportHeight / 2);
+      const focus = clamp(1 - centerDistance / (viewportHeight * 0.9));
+      const scroll = clamp((viewportHeight - rect.top) / (viewportHeight + rect.height));
+
+      section.style.setProperty('--section-mx', `${(localX * 100).toFixed(2)}%`);
+      section.style.setProperty('--section-my', `${(localY * 100).toFixed(2)}%`);
+      section.style.setProperty('--section-focus', focus.toFixed(3));
+      section.style.setProperty('--section-scroll', scroll.toFixed(3));
+    });
+  };
+
+  const requestUpdate = () => {
+    if (!frameId) frameId = requestAnimationFrame(update);
+  };
+
+  window.addEventListener('pointermove', (event) => {
+    pointerX = clamp(event.clientX / Math.max(1, window.innerWidth));
+    pointerY = clamp(event.clientY / Math.max(1, window.innerHeight));
+    requestUpdate();
+  }, { passive: true });
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', requestUpdate);
+  update();
+}
+
+setupSectionAtmospheres();
 
 const clickContext = clickCanvas.getContext('2d');
 const clickParticles = [];

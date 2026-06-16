@@ -94,6 +94,12 @@
     <div class="curtain-panel curtain-right"><i></i><b></b></div>
   </div>
 
+  <div class="ambient-world" id="ambientWorld" aria-hidden="true">
+    <canvas id="ambientCanvas"></canvas>
+    <div class="ambient-lens"></div>
+    <div class="ambient-vignette"></div>
+  </div>
+
   <section class="prologue" id="prologue" aria-label="Opening">
     <canvas id="stars"></canvas>
     <div class="prologue-glow"></div>
@@ -146,7 +152,8 @@
       <p>Für Leo, mit Liebe.</p>
     </nav>
 
-    <section class="chapter opening-chapter" id="beginning">
+    <section class="chapter opening-chapter" id="beginning" data-ambient="light">
+      <div class="section-atmosphere light-atmosphere opening-atmosphere" aria-hidden="true"></div>
       <div class="chapter-number" data-reveal>01 / 06</div>
       <div class="opening-copy">
         <p class="eyebrow opening-salutation" data-i18n="dearLeo">Liebe Leo</p>
@@ -185,7 +192,8 @@
       <p class="side-note">SCROLL TO REMEMBER</p>
     </section>
 
-    <section class="chapter memories" id="memories">
+    <section class="chapter memories" id="memories" data-ambient="dark">
+      <div class="section-atmosphere dark-atmosphere memory-atmosphere" aria-hidden="true"></div>
       <div class="section-heading">
         <div class="chapter-number" data-reveal>02 / 06</div>
         <p class="eyebrow" data-reveal data-i18n="storyEyebrow">Unsere Geschichte</p>
@@ -291,7 +299,8 @@
       </div>
     </section>
 
-    <section class="chapter portrait" id="portrait">
+    <section class="chapter portrait" id="portrait" data-ambient="light">
+      <div class="section-atmosphere light-atmosphere portrait-atmosphere" aria-hidden="true"></div>
       <div class="portrait-stage">
         <div class="portrait-halo" data-parallax="-0.05"></div>
         <div class="trait-orbit orbit-word-one"><p class="portrait-word" data-i18n="traitWarm">wundervoll</p></div>
@@ -313,7 +322,8 @@
       </div>
     </section>
 
-    <section class="chapter future" id="future">
+    <section class="chapter future" id="future" data-ambient="dark">
+      <div class="section-atmosphere dark-atmosphere future-atmosphere" aria-hidden="true"></div>
       <div class="future-sky" aria-hidden="true"></div>
       <div class="future-aurora aurora-one" aria-hidden="true"></div>
       <div class="future-aurora aurora-two" aria-hidden="true"></div>
@@ -351,7 +361,8 @@
       </div>
     </section>
 
-    <section class="chapter archive" id="archive">
+    <section class="chapter archive" id="archive" data-ambient="dark">
+      <div class="section-atmosphere dark-atmosphere archive-atmosphere" aria-hidden="true"></div>
       <div class="archive-glow archive-glow-one" aria-hidden="true"></div>
       <div class="archive-glow archive-glow-two" aria-hidden="true"></div>
       <div class="archive-heading">
@@ -416,7 +427,8 @@
       <input id="albumFileInput" type="file" accept="image/*" hidden>
     </section>
 
-    <section class="chapter finale" id="finale">
+    <section class="chapter finale" id="finale" data-ambient="light">
+      <div class="section-atmosphere light-atmosphere finale-atmosphere" aria-hidden="true"></div>
       <div class="finale-ring" aria-hidden="true">
         <span class="finale-dot-track finale-track-outer"><i></i></span>
         <span class="finale-dot-track finale-track-middle"><i></i></span>
