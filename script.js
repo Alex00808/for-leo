@@ -745,6 +745,11 @@ function easeOutQuart(value) {
   return 1 - Math.pow(1 - progress, 4);
 }
 
+function easeCinematicText(value) {
+  const progress = clamp(value);
+  return .5 - Math.cos(progress * Math.PI) * .5;
+}
+
 function getRevealMetric(element, options = {}) {
   const viewportHeight = window.innerHeight || 1;
   const rect = element.getBoundingClientRect();
@@ -754,7 +759,8 @@ function getRevealMetric(element, options = {}) {
     anchorRatio = 0.2,
     anchorCap = 0.18,
     forceTop = 0.5,
-    forceBottom = 0.92
+    forceBottom = 0.92,
+    easing = easeOutQuart
   } = options;
   const anchorOffset = Math.min(Math.max(rect.height, 1) * anchorRatio, viewportHeight * anchorCap);
   const anchor = rect.top + anchorOffset;
@@ -773,7 +779,7 @@ function getRevealMetric(element, options = {}) {
 
   return {
     raw: rawProgress,
-    eased: easeOutQuart(rawProgress)
+    eased: easing(rawProgress)
   };
 }
 
@@ -789,31 +795,36 @@ function updateRevealProgress() {
     });
     const pop = Math.sin(metric.raw * Math.PI);
 
-    element.style.setProperty('--reveal-progress', metric.eased.toFixed(3));
+    const settled = metric.raw >= 0.94;
+    element.style.setProperty('--reveal-progress', (settled ? 1 : metric.eased).toFixed(3));
     element.style.setProperty('--reveal-pop', pop.toFixed(3));
-    element.classList.toggle('is-revealed', metric.raw >= 0.985);
+    element.classList.toggle('is-revealed', settled);
   });
 }
 
 function updateCinematicText() {
   cinematicTextElements.forEach((element) => {
     const isTitle = element.classList.contains('cinematic-title');
+    const isMeta = element.classList.contains('cinematic-meta');
     const metric = getRevealMetric(element, {
-      start: isTitle ? 1.08 : 1.02,
-      finish: isTitle ? 0.72 : 0.68,
-      anchorRatio: isTitle ? 0.14 : 0.2,
-      anchorCap: isTitle ? 0.14 : 0.18,
-      forceTop: isTitle ? 0.66 : 0.78,
-      forceBottom: isTitle ? 0.98 : 0.98
+      start: isTitle ? 1.18 : isMeta ? 1.1 : 1.14,
+      finish: isTitle ? 0.72 : isMeta ? 0.76 : 0.78,
+      anchorRatio: isTitle ? 0.12 : isMeta ? 0.12 : 0.16,
+      anchorCap: isTitle ? 0.12 : isMeta ? 0.12 : 0.15,
+      forceTop: isTitle ? 0.74 : isMeta ? 0.82 : 0.82,
+      forceBottom: 0.98,
+      easing: easeCinematicText
     });
-    const velocity = Math.sin(metric.raw * Math.PI);
-    const flare = metric.raw > 0.04 && metric.raw < 0.96 ? velocity : 0;
+    const settled = metric.raw >= 0.93;
+    const progress = settled ? 1 : metric.eased;
+    const velocity = settled ? 0 : Math.sin(metric.raw * Math.PI);
+    const flare = !settled && metric.raw > 0.06 && metric.raw < 0.9 ? velocity : 0;
 
-    element.style.setProperty('--text-progress', metric.eased.toFixed(3));
+    element.style.setProperty('--text-progress', progress.toFixed(3));
     element.style.setProperty('--text-velocity', velocity.toFixed(3));
     element.style.setProperty('--text-pop', velocity.toFixed(3));
     element.style.setProperty('--text-flare', flare.toFixed(3));
-    element.classList.toggle('is-revealed', metric.raw >= 0.985);
+    element.classList.toggle('is-revealed', settled);
   });
 }
 

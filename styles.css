@@ -148,7 +148,7 @@ body.curtain-arrival .ambient-world { opacity: 1; }
 .language-switcher button.active { color: #111; background: var(--paper); box-shadow: 0 3px 16px rgba(0,0,0,.22); }
 .language-switcher span { font-size: .82rem; line-height: 1; }
 .language-switcher b { font-family: var(--sans); font-size: .52rem; font-weight: 500; letter-spacing: .08em; }
-body.language-changing [data-i18n] { opacity: .12 !important; filter: blur(8px) !important; transform: translateY(4px) !important; }
+body.language-changing [data-i18n] { opacity: .16 !important; filter: blur(3px) !important; transform: translateY(4px) !important; }
 [data-i18n] { transition: opacity .35s ease, filter .35s ease, transform .35s ease; }
 body.is-chinese [data-i18n] { font-family: var(--chinese); }
 body.is-chinese h2[data-i18n], body.is-chinese h3[data-i18n] { line-height: 1.12; letter-spacing: .015em; }
@@ -362,6 +362,7 @@ body.curtain-opening .curtain-right { transform: translate3d(103%,0,0) scaleX(.8
 }
 .hero-title {
   position: relative;
+  isolation: isolate;
   margin: 0;
   text-align: center;
   font-family: var(--serif);
@@ -369,9 +370,36 @@ body.curtain-opening .curtain-right { transform: translate3d(103%,0,0) scaleX(.8
   font-weight: 300;
   line-height: .76;
   letter-spacing: -.045em;
+  text-shadow:
+    .012em .016em 0 rgba(255,246,218,.12),
+    .034em .052em 0 rgba(62,20,31,.38),
+    0 .11em .28em rgba(0,0,0,.58),
+    0 0 .34em rgba(189,167,125,.22);
+}
+.hero-title::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -18% -18% -12%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 43%, rgba(238,220,176,.22), transparent 58%),
+    radial-gradient(ellipse at 50% 72%, rgba(93,22,42,.28), transparent 66%);
+  filter: blur(30px);
+  opacity: .86;
+  transform: translate3d(0, 0, 0) scale(.98);
+  animation: titleBacklight 8.5s ease-in-out infinite alternate;
 }
 .hero-title span, .hero-title em { display: block; }
-.hero-title em { color: var(--gold); font-weight: 300; }
+.hero-title em {
+  color: var(--gold);
+  font-weight: 300;
+  text-shadow:
+    .014em .02em 0 rgba(255,247,219,.08),
+    .04em .06em 0 rgba(67,20,35,.44),
+    0 .13em .3em rgba(0,0,0,.62),
+    0 0 .42em rgba(224,196,138,.24);
+}
 .prologue-line {
   margin: 3rem 0 2.3rem;
   text-align: center;
@@ -415,12 +443,25 @@ body.curtain-opening .curtain-right { transform: translate3d(103%,0,0) scaleX(.8
 .hero-city-labels time.time-tick, .love-city-labels time.time-tick { animation: localTimeTick .55s cubic-bezier(.16,1,.3,1); }
 @keyframes localTimeTick { 0% { opacity: .25; transform: translateY(-5px) scale(.94); } 65% { opacity: 1; transform: translateY(1px) scale(1.035); } 100% { transform: none; } }
 .hero-city-labels > b { display: none; }
-.reveal-first { opacity: 0; transform: translateY(20px); animation: introIn 1s cubic-bezier(.2,.7,.2,1) forwards; }
-.reveal-first:nth-of-type(1) { animation-delay: .35s; }
-.hero-title.reveal-first { animation-delay: .55s; }
-.prologue-line.reveal-first { animation-delay: .8s; }
-.prologue-actions.reveal-first { animation-delay: 1s; }
-@keyframes introIn { to { opacity: 1; transform: translateY(0); } }
+.reveal-first {
+  opacity: 0;
+  filter: blur(6px) saturate(.88);
+  transform: translate3d(0, 42px, 0) scale(.965);
+  animation: introIn 1.8s cubic-bezier(.16, 1, .3, 1) forwards;
+}
+.reveal-first:nth-of-type(1) { animation-delay: .34s; }
+.hero-title.reveal-first { animation-delay: .54s; }
+.prologue-line.reveal-first { animation-delay: .84s; }
+.prologue-actions.reveal-first { animation-delay: 1.02s; }
+@keyframes introIn {
+  0% { opacity: 0; filter: blur(6px) saturate(.88); transform: translate3d(0, 42px, 0) scale(.965); }
+  58% { opacity: 1; filter: blur(1.5px) saturate(1.04); transform: translate3d(0, -8px, 0) scale(1.012); }
+  100% { opacity: 1; filter: none; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes titleBacklight {
+  0% { opacity: .64; transform: translate3d(-1.2%, -.8%, 0) scale(.96); }
+  100% { opacity: .98; transform: translate3d(1%, .9%, 0) scale(1.04); }
+}
 
 main { position: relative; z-index: 1; opacity: 0; transition: opacity 1s .4s; }
 body.started main { opacity: 1; }
@@ -606,7 +647,7 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   --reveal-pop: 0;
   --reveal-x: 0px;
   opacity: var(--reveal-progress);
-  filter: blur(calc((1 - var(--reveal-progress)) * 10px)) saturate(calc(.82 + var(--reveal-progress) * .22));
+  filter: blur(calc((1 - var(--reveal-progress)) * 4px)) saturate(calc(.88 + var(--reveal-progress) * .16));
   transform:
     perspective(1100px)
     translate3d(
@@ -617,8 +658,11 @@ body.curtain-arrival main { opacity: 1; transition: none; }
     rotateX(calc((1 - var(--reveal-progress)) * -8deg))
     scale(calc(.935 + var(--reveal-progress) * .065 + var(--reveal-pop) * .012));
   transform-origin: 50% 90%;
-  transition: none;
-  will-change: opacity, transform, filter;
+  transition:
+    opacity .95s cubic-bezier(.16, 1, .3, 1),
+    filter 1.05s cubic-bezier(.16, 1, .3, 1),
+    transform 1.12s cubic-bezier(.16, 1, .3, 1);
+  will-change: opacity, transform;
 }
 
 [data-reveal].is-revealed {
@@ -628,7 +672,7 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   will-change: auto;
 }
 
-/* Scroll-driven typography: oversized editorial movement, optical blur, and gold light passes. */
+/* Scroll-driven typography: slower Apple-style editorial movement with optical light passes. */
 .cinematic-text {
   --text-progress: 0;
   --text-velocity: 0;
@@ -638,125 +682,127 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   --text-tilt: -4deg;
   position: relative;
   isolation: isolate;
+  overflow: visible;
   opacity: var(--text-progress);
   filter:
-    blur(calc((1 - var(--text-progress)) * 18px))
-    saturate(calc(.72 + var(--text-progress) * .38))
-    contrast(calc(.88 + var(--text-progress) * .16));
-  clip-path: inset(calc((1 - var(--text-progress)) * 26%) -14% calc((1 - var(--text-progress)) * 18%) -14%);
+    blur(calc((1 - var(--text-progress)) * 5px))
+    saturate(calc(.9 + var(--text-progress) * .16))
+    contrast(calc(.94 + var(--text-progress) * .08));
   transform:
     perspective(1450px)
     translate3d(
-      calc((1 - var(--text-progress)) * var(--text-x)),
-      calc((1 - var(--text-progress)) * 108px),
+      calc((1 - var(--text-progress)) * var(--text-x) * 1.18),
+      calc((1 - var(--text-progress)) * 124px),
       0
     )
-    rotateX(calc((1 - var(--text-progress)) * -22deg))
-    rotateY(calc((1 - var(--text-progress)) * var(--text-tilt) * -2))
+    rotateX(calc((1 - var(--text-progress)) * -18deg))
+    rotateY(calc((1 - var(--text-progress)) * var(--text-tilt) * -1.55))
     rotateZ(calc((1 - var(--text-progress)) * var(--text-tilt)))
-    scale(calc(.86 + var(--text-progress) * .14 + var(--text-pop) * .025));
+    scale(calc(.88 + var(--text-progress) * .12 + var(--text-pop) * .018));
   transform-origin: 50% 100%;
-  transition: none;
+  transition:
+    opacity 1.35s cubic-bezier(.16, 1, .3, 1),
+    filter 1.15s cubic-bezier(.16, 1, .3, 1),
+    transform 1.55s cubic-bezier(.16, 1, .3, 1),
+    letter-spacing 1.35s cubic-bezier(.16, 1, .3, 1),
+    text-shadow .9s ease;
   text-shadow:
-    0 calc(var(--text-pop) * 14px) calc(var(--text-pop) * 34px) rgba(189,167,125,.26),
-    0 0 calc(var(--text-flare) * 38px) rgba(255,236,184,.26);
-  will-change: opacity, transform, filter, clip-path, text-shadow;
+    0 calc(var(--text-pop) * 12px) calc(var(--text-pop) * 30px) rgba(189,167,125,.22),
+    0 0 calc(var(--text-flare) * 32px) rgba(255,236,184,.2);
+  will-change: opacity, transform;
 }
 .cinematic-text::after {
-  content: "";
-  position: absolute;
-  inset: -18% -20%;
-  z-index: 2;
-  pointer-events: none;
-  opacity: calc(var(--text-flare) * .82);
-  background:
-    linear-gradient(106deg,
-      transparent 28%,
-      rgba(255,246,218,.04) 39%,
-      rgba(255,247,214,.55) 48%,
-      rgba(189,167,125,.22) 54%,
-      transparent 68%);
-  mix-blend-mode: screen;
-  filter: blur(11px);
-  transform: translate3d(calc(-120% + var(--text-progress) * 240%), 0, 0) skewX(-18deg);
-  transition: opacity .12s linear, transform .12s linear;
+  content: none;
 }
 .cinematic-from-right { --text-x: 118px; --text-tilt: 4deg; }
 .cinematic-title {
   filter:
-    blur(calc((1 - var(--text-progress)) * 30px))
-    saturate(calc(.64 + var(--text-progress) * .48))
-    contrast(calc(.82 + var(--text-progress) * .22));
-  clip-path: inset(calc((1 - var(--text-progress)) * 44%) -18% calc((1 - var(--text-progress)) * 10%) -18%);
+    blur(calc((1 - var(--text-progress)) * 7px))
+    saturate(calc(.86 + var(--text-progress) * .18))
+    contrast(calc(.92 + var(--text-progress) * .1));
   transform:
     perspective(1600px)
     translate3d(
-      calc((1 - var(--text-progress)) * var(--text-x) * 1.75),
-      calc((1 - var(--text-progress)) * 168px),
+      calc((1 - var(--text-progress)) * var(--text-x) * 1.65),
+      calc((1 - var(--text-progress)) * 154px),
       0
     )
-    rotateX(calc((1 - var(--text-progress)) * -31deg))
-    rotateY(calc((1 - var(--text-progress)) * var(--text-tilt) * -4))
+    rotateX(calc((1 - var(--text-progress)) * -24deg))
+    rotateY(calc((1 - var(--text-progress)) * var(--text-tilt) * -3.2))
     rotateZ(calc((1 - var(--text-progress)) * var(--text-tilt)))
-    scale(calc(.72 + var(--text-progress) * .28 + var(--text-pop) * .035));
-  letter-spacing: calc(-.045em + (1 - var(--text-progress)) * .11em);
+    scale(calc(.78 + var(--text-progress) * .22 + var(--text-pop) * .025));
+  letter-spacing: calc(-.045em + (1 - var(--text-progress)) * .075em);
   transform-origin: 50% 100%;
+  text-shadow:
+    .012em .018em 0 rgba(255,246,218,.1),
+    .032em .048em 0 rgba(75,23,39,.2),
+    0 .12em .28em rgba(0,0,0,.24),
+    0 0 calc(.18em + var(--text-flare) * .28em) rgba(216,188,130,.24);
 }
 .cinematic-title::before {
   content: "";
   position: absolute;
-  inset: 8% -7% 0;
+  inset: -16% -10% -10%;
   z-index: -1;
   pointer-events: none;
-  opacity: calc(var(--text-flare) * .45);
-  background: radial-gradient(ellipse at 48% 55%, rgba(189,167,125,.42), transparent 58%);
-  filter: blur(34px);
-  transform: scaleX(calc(.8 + var(--text-progress) * .3));
+  opacity: calc(var(--text-progress) * .2 + var(--text-flare) * .18);
+  background:
+    radial-gradient(ellipse at 42% 48%, rgba(238,220,176,.28), transparent 55%),
+    radial-gradient(ellipse at 58% 74%, rgba(91,26,42,.22), transparent 64%);
+  filter: blur(24px);
+  transform:
+    translate3d(calc((1 - var(--text-progress)) * -18px), calc((1 - var(--text-progress)) * 18px), 0)
+    scaleX(calc(.88 + var(--text-progress) * .2));
 }
 .cinematic-meta {
-  filter: blur(calc((1 - var(--text-progress)) * 12px));
-  clip-path: inset(0 calc((1 - var(--text-progress)) * 74%) 0 0);
+  filter: blur(calc((1 - var(--text-progress)) * 4px));
   transform:
     translate3d(
-      calc((1 - var(--text-progress)) * var(--text-x) * 1.55),
-      calc((1 - var(--text-progress)) * 26px),
+      calc((1 - var(--text-progress)) * var(--text-x) * 1.2),
+      calc((1 - var(--text-progress)) * 34px),
       0
     )
-    skewX(calc((1 - var(--text-progress)) * var(--text-tilt) * -4));
-  letter-spacing: calc(.16em + (1 - var(--text-progress)) * .24em);
+    skewX(calc((1 - var(--text-progress)) * var(--text-tilt) * -2.8));
+  letter-spacing: calc(.16em + (1 - var(--text-progress)) * .18em);
 }
 .cinematic-body {
-  filter: blur(calc((1 - var(--text-progress)) * 16px));
+  filter: blur(calc((1 - var(--text-progress)) * 5px));
   transform:
     perspective(1200px)
     translate3d(
-      calc((1 - var(--text-progress)) * var(--text-x) * .82),
-      calc((1 - var(--text-progress)) * 84px),
+      calc((1 - var(--text-progress)) * var(--text-x) * .7),
+      calc((1 - var(--text-progress)) * 72px),
       0
     )
-    rotateX(calc((1 - var(--text-progress)) * -16deg))
-    rotateZ(calc((1 - var(--text-progress)) * var(--text-tilt) * .32))
-    scale(calc(.9 + var(--text-progress) * .1 + var(--text-pop) * .012));
+    rotateX(calc((1 - var(--text-progress)) * -10deg))
+    rotateZ(calc((1 - var(--text-progress)) * var(--text-tilt) * .22))
+    scale(calc(.94 + var(--text-progress) * .06 + var(--text-pop) * .008));
 }
 
 .cinematic-text.is-revealed,
 .cinematic-text.is-revealed[data-reveal] {
   opacity: 1 !important;
   filter: none !important;
-  clip-path: inset(0 -18% 0 -18%) !important;
+  clip-path: none !important;
   transform: none !important;
-  text-shadow: none !important;
   will-change: auto;
 }
 .cinematic-title.is-revealed {
   letter-spacing: -.045em !important;
+  text-shadow:
+    .012em .018em 0 rgba(255,246,218,.1),
+    .032em .048em 0 rgba(75,23,39,.2),
+    0 .12em .28em rgba(0,0,0,.24),
+    0 0 .2em rgba(216,188,130,.18) !important;
 }
 .cinematic-meta.is-revealed {
   letter-spacing: .16em !important;
 }
-.cinematic-text.is-revealed::before,
 .cinematic-text.is-revealed::after {
-  opacity: 0 !important;
+  content: none;
+}
+.cinematic-title.is-revealed::before {
+  opacity: .18 !important;
 }
 
 .cinematic-text[data-reveal] {
@@ -764,38 +810,34 @@ body.curtain-arrival main { opacity: 1; transition: none; }
 }
 
 body.started #beginning .cinematic-text {
-  animation: openingTextArrival 2.05s cubic-bezier(.16,1,.22,1) both;
+  animation: openingTextArrival 3.15s cubic-bezier(.16, 1, .3, 1) both;
 }
-body.started #beginning .cinematic-title { animation-duration: 2.45s; }
-body.started #beginning .translation { animation-delay: .22s; }
-body.started #beginning .our-dates { animation-delay: .36s; }
+body.started #beginning .cinematic-title { animation-duration: 3.85s; }
+body.started #beginning .translation { animation-delay: .34s; }
+body.started #beginning .our-dates { animation-delay: .52s; }
 
 @keyframes openingTextArrival {
   0% {
     opacity: 0;
-    filter: blur(34px) saturate(.58);
-    clip-path: inset(48% -14% 18% -14%);
-    transform: perspective(1500px) translate3d(-170px, 172px, 0) rotateX(-32deg) rotateY(10deg) rotateZ(-3deg) scale(.72);
-    text-shadow: 0 46px 70px rgba(189,167,125,.28);
+    filter: blur(10px) saturate(.72);
+    transform: perspective(1500px) translate3d(-150px, 146px, 0) rotateX(-24deg) rotateY(8deg) rotateZ(-2.2deg) scale(.78);
+    text-shadow: 0 36px 62px rgba(189,167,125,.24);
   }
   42% {
-    opacity: .92;
-    filter: blur(7px) saturate(1.16);
-    clip-path: inset(0 -14% 0 -14%);
-    transform: perspective(1500px) translate3d(34px, -18px, 0) rotateX(6deg) rotateY(-3deg) rotateZ(.55deg) scale(1.045);
-    text-shadow: 0 18px 54px rgba(255,236,184,.34);
+    opacity: .86;
+    filter: blur(4px) saturate(1.08);
+    transform: perspective(1500px) translate3d(22px, -12px, 0) rotateX(4deg) rotateY(-2deg) rotateZ(.36deg) scale(1.026);
+    text-shadow: 0 14px 44px rgba(255,236,184,.26);
   }
   68% {
     opacity: 1;
-    filter: blur(1.6px) saturate(1.04);
-    clip-path: inset(0 -14% 0 -14%);
-    transform: perspective(1500px) translate3d(-8px, 4px, 0) rotateX(-1deg) rotateY(.8deg) rotateZ(-.16deg) scale(.992);
-    text-shadow: 0 6px 24px rgba(189,167,125,.16);
+    filter: blur(1.5px) saturate(1.03);
+    transform: perspective(1500px) translate3d(-5px, 3px, 0) rotateX(-.6deg) rotateY(.45deg) rotateZ(-.1deg) scale(.996);
+    text-shadow: 0 5px 20px rgba(189,167,125,.12);
   }
   100% {
     opacity: 1;
     filter: none;
-    clip-path: inset(0 -14% 0 -14%);
     transform: perspective(1500px) translate3d(0, 0, 0) rotateX(0) rotateY(0) rotateZ(0) scale(1);
     text-shadow: none;
   }
@@ -1154,8 +1196,12 @@ body.perf-lite .light-atmosphere::before,
 body.perf-lite .dark-atmosphere::after { opacity: .28; animation-duration: 40s; }
 body.perf-lite .light-atmosphere::after { opacity: .38; filter: blur(13px); animation-duration: 30s; }
 body.perf-lite .dark-atmosphere::before { opacity: .36; filter: blur(11px); animation-duration: 32s; }
-body.perf-lite .cinematic-text::after { opacity: calc(var(--text-flare) * .52); filter: blur(7px); }
-body.perf-lite .cinematic-title::before { filter: blur(22px); opacity: calc(var(--text-flare) * .32); }
+body.perf-lite .cinematic-text::after { content: none; }
+body.perf-lite .cinematic-title::before {
+  filter: blur(18px);
+  opacity: calc(var(--text-progress) * .12 + var(--text-flare) * .16);
+}
+body.perf-lite .cinematic-title.is-revealed::before { opacity: .12 !important; }
 body.perf-lite .light-leak::before,
 body.perf-lite .visual-grid::before,
 body.perf-lite .wish-grid::before { filter: blur(14px); }
