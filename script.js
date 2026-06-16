@@ -21,6 +21,38 @@ const albumFrames = document.querySelectorAll('[data-photo-slot]');
 const albumFileInput = document.querySelector('#albumFileInput');
 const albumCounter = document.querySelector('#albumCounter');
 
+const forcedPerformanceMode = (() => {
+  try {
+    const params = new URL(window.location.href).searchParams;
+    return params.get('perf') || window.localStorage.getItem('leoPerfMode') || '';
+  } catch (error) {
+    return '';
+  }
+})();
+const lowPowerSignals = [
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  Boolean(navigator.connection?.saveData),
+  (navigator.hardwareConcurrency || 8) <= 4,
+  (navigator.deviceMemory || 8) <= 4
+];
+const litePerformance = forcedPerformanceMode === 'lite' || (forcedPerformanceMode !== 'full' && lowPowerSignals.some(Boolean));
+body.classList.toggle('perf-lite', litePerformance);
+body.classList.toggle('perf-full', !litePerformance);
+
+const PERF = {
+  canvasDprCap: litePerformance ? 1.05 : 1.28,
+  ambientScale: litePerformance ? 0.58 : 0.74,
+  ambientFps: litePerformance ? 22 : 30,
+  clickScale: litePerformance ? 0.86 : 1,
+  starScale: litePerformance ? 0.72 : 0.88,
+  starCountScale: litePerformance ? 0.42 : 0.68,
+  starFps: litePerformance ? 18 : 26
+};
+
+function canvasPixelRatio(scale = 1) {
+  return Math.max(1, Math.min(window.devicePixelRatio || 1, PERF.canvasDprCap) * scale);
+}
+
 const translations = {
   de: {
     prologueEyebrow: 'Eine kleine Welt, nur für uns',
@@ -1003,10 +1035,12 @@ function setupAmbientWorld() {
   let mouseY = 0.5;
   let scrollProgress = 0;
   let lastTime = performance.now();
+  let lastDrawTime = 0;
   let frameId = 0;
+  const minFrameDelay = 1000 / PERF.ambientFps;
 
   function resize() {
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.55);
+    const pixelRatio = canvasPixelRatio(PERF.ambientScale);
     const nextWidth = Math.max(1, Math.floor(window.innerWidth * pixelRatio));
     const nextHeight = Math.max(1, Math.floor(window.innerHeight * pixelRatio));
     if (nextWidth === width && nextHeight === height) return;
@@ -1045,6 +1079,11 @@ function setupAmbientWorld() {
   }
 
   function render(now) {
+    if (!reduceMotion.matches && now - lastDrawTime < minFrameDelay) {
+      frameId = requestAnimationFrame(render);
+      return;
+    }
+    lastDrawTime = now;
     const delta = Math.min(0.08, (now - lastTime) / 1000 || 0.016);
     lastTime = now;
     resize();
@@ -1073,7 +1112,7 @@ function setupAmbientWorld() {
   }
 
   function start() {
-    if (!frameId) {
+    if (!frameId && !document.hidden) {
       lastTime = performance.now();
       frameId = requestAnimationFrame(render);
     }
@@ -1120,6 +1159,15 @@ function setupSectionAtmospheres() {
   const sections = Array.from(document.querySelectorAll('.chapter'));
   if (!sections.length) return;
 
+  if ('IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle('section-dormant', !entry.isIntersecting);
+      });
+    }, { rootMargin: '420px 0px' });
+    sections.forEach((section) => sectionObserver.observe(section));
+  }
+
   let pointerX = 0.72;
   let pointerY = 0.28;
   let frameId = 0;
@@ -1132,6 +1180,7 @@ function setupSectionAtmospheres() {
     const screenY = pointerY * viewportHeight;
 
     sections.forEach((section) => {
+      if (section.classList.contains('section-dormant')) return;
       const rect = section.getBoundingClientRect();
       if (rect.bottom < -240 || rect.top > viewportHeight + 240) return;
 
@@ -1169,7 +1218,7 @@ const clickParticles = [];
 let clickAnimationFrame = 0;
 
 function resizeClickCanvas() {
-  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const ratio = canvasPixelRatio(PERF.clickScale);
   clickCanvas.width = window.innerWidth * ratio;
   clickCanvas.height = window.innerHeight * ratio;
   clickContext.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -1582,15 +1631,25 @@ loveCat.addEventListener('click', showCatMeow);
 scheduleCatMove();
 
 function setupStarCanvas(canvas, count, colored = false) {
+  if (!canvas) return;
   const context = canvas.getContext('2d');
   let particles = [];
+  let frameId = 0;
+  let lastDrawTime = 0;
+  let isVisible = true;
+  const isCelebration = canvas.id === 'celebration';
+  const particleCount = Math.max(24, Math.round(count * PERF.starCountScale));
+  const minFrameDelay = 1000 / PERF.starFps;
 
   function resize() {
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = window.innerWidth * ratio;
-    canvas.height = window.innerHeight * ratio;
+    const ratio = canvasPixelRatio(PERF.starScale);
+    const nextWidth = Math.max(1, Math.round(window.innerWidth * ratio));
+    const nextHeight = Math.max(1, Math.round(window.innerHeight * ratio));
+    if (canvas.width === nextWidth && canvas.height === nextHeight && particles.length) return;
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    particles = Array.from({ length: count }, () => ({
+    particles = Array.from({ length: particleCount }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       radius: Math.random() * 1.2 + 0.2,
@@ -1600,7 +1659,18 @@ function setupStarCanvas(canvas, count, colored = false) {
     }));
   }
 
-  function draw() {
+  function canAnimate() {
+    return isVisible && !document.hidden && (!isCelebration || loveReveal?.classList.contains('visible'));
+  }
+
+  function draw(now = 0) {
+    frameId = 0;
+    if (!canAnimate()) return;
+    if (now - lastDrawTime < minFrameDelay) {
+      frameId = requestAnimationFrame(draw);
+      return;
+    }
+    lastDrawTime = now;
     context.clearRect(0, 0, window.innerWidth, window.innerHeight);
     particles.forEach((particle) => {
       particle.y -= particle.speed;
@@ -1610,12 +1680,43 @@ function setupStarCanvas(canvas, count, colored = false) {
       context.fillStyle = colored ? particle.color : `rgba(238,233,223,${particle.alpha})`;
       context.fill();
     });
-    requestAnimationFrame(draw);
+    frameId = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    if (!frameId && canAnimate()) frameId = requestAnimationFrame(draw);
+  }
+
+  function stop() {
+    if (frameId) cancelAnimationFrame(frameId);
+    frameId = 0;
   }
 
   resize();
-  draw();
-  window.addEventListener('resize', resize);
+  start();
+  window.addEventListener('resize', () => {
+    resize();
+    start();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+    else start();
+  });
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible) start();
+      else stop();
+    }, { rootMargin: '180px' });
+    observer.observe(canvas);
+  }
+  if (isCelebration) {
+    const observer = new MutationObserver(() => {
+      if (canAnimate()) start();
+      else stop();
+    });
+    observer.observe(loveReveal, { attributes: true, attributeFilter: ['class'] });
+  }
 }
 
 setupStarCanvas(document.querySelector('#stars'), 95);

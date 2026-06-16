@@ -470,7 +470,8 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   pointer-events: none;
   overflow: hidden;
   transform: translate3d(0, 0, 0);
-  will-change: transform, opacity, filter;
+  will-change: opacity;
+  contain: paint;
 }
 .light-atmosphere {
   opacity: .82;
@@ -624,6 +625,7 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   opacity: 1 !important;
   filter: none !important;
   transform: translate3d(0, 0, 0) scale(1) !important;
+  will-change: auto;
 }
 
 /* Scroll-driven typography: oversized editorial movement, optical blur, and gold light passes. */
@@ -744,6 +746,7 @@ body.curtain-arrival main { opacity: 1; transition: none; }
   clip-path: inset(0 -18% 0 -18%) !important;
   transform: none !important;
   text-shadow: none !important;
+  will-change: auto;
 }
 .cinematic-title.is-revealed {
   letter-spacing: -.045em !important;
@@ -850,7 +853,8 @@ body.is-chinese .opening-copy .eyebrow { letter-spacing: .14em; font-size: 1rem;
 .memory-track { display: flex; flex-direction: column; gap: 8rem; }
 .memory-card { display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(3rem, 8vw, 10rem); align-items: center; }
 .memory-card-two { grid-template-columns: .85fr 1.15fr; }
-.memory-visual { --mx: 50%; --my: 50%; --edge-opacity: .46; position: relative; height: min(68vh, 720px); min-height: 430px; overflow: hidden; isolation: isolate; transform-style: preserve-3d; will-change: transform; border: 1px solid rgba(223,188,117,.62); box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,242,207,.06), 0 0 28px rgba(211,169,89,.1); animation: visualBreath 5.5s ease-in-out infinite; transition: box-shadow .7s cubic-bezier(.22,1,.36,1), border-color .7s cubic-bezier(.22,1,.36,1); }
+.memory-visual { --mx: 50%; --my: 50%; --edge-opacity: .46; position: relative; height: min(68vh, 720px); min-height: 430px; overflow: hidden; isolation: isolate; transform-style: preserve-3d; will-change: auto; contain: layout paint style; border: 1px solid rgba(223,188,117,.62); box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,242,207,.06), 0 0 28px rgba(211,169,89,.1); animation: visualBreath 5.5s ease-in-out infinite; transition: box-shadow .7s cubic-bezier(.22,1,.36,1), border-color .7s cubic-bezier(.22,1,.36,1); }
+.memory-visual.light-active { will-change: transform; }
 .memory-card-two .memory-visual { animation-delay: -1.8s; }
 .memory-card-three .memory-visual { animation-delay: -3.6s; }
 .memory-visual:hover { border-color: rgba(255,221,151,.95); box-shadow: 0 42px 110px rgba(0,0,0,.5), inset 0 0 42px rgba(241,197,106,.12), 0 0 42px rgba(222,176,82,.28); animation-play-state: paused; }
@@ -1139,6 +1143,61 @@ body.started .cat-figure { animation: catFigureArrival .75s cubic-bezier(.2,1.3,
 @keyframes catTail { to { transform: rotate(17deg); } }
 @keyframes catBlink { 0%,45%,49%,100% { transform: scaleY(1); } 47% { transform: scaleY(.08); } }
 @keyframes catBubble { 0% { opacity: 0; transform: translateY(8px) scale(.75); } 20%,72% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-8px) scale(.9); } }
+
+body.perf-lite .noise { opacity: .026; }
+body.perf-lite .ambient-lens { opacity: .42; filter: blur(14px); }
+body.perf-lite .ambient-world.ambient-fallback::before { filter: blur(30px); animation-duration: 28s; }
+body.perf-lite .section-atmosphere { inset: -12%; transform: none; }
+body.perf-lite .light-atmosphere,
+body.perf-lite .dark-atmosphere { animation-duration: 28s; }
+body.perf-lite .light-atmosphere::before,
+body.perf-lite .dark-atmosphere::after { opacity: .28; animation-duration: 40s; }
+body.perf-lite .light-atmosphere::after { opacity: .38; filter: blur(13px); animation-duration: 30s; }
+body.perf-lite .dark-atmosphere::before { opacity: .36; filter: blur(11px); animation-duration: 32s; }
+body.perf-lite .cinematic-text::after { opacity: calc(var(--text-flare) * .52); filter: blur(7px); }
+body.perf-lite .cinematic-title::before { filter: blur(22px); opacity: calc(var(--text-flare) * .32); }
+body.perf-lite .light-leak::before,
+body.perf-lite .visual-grid::before,
+body.perf-lite .wish-grid::before { filter: blur(14px); }
+body.perf-lite .future-aurora { filter: blur(36px); opacity: .085; }
+body.perf-lite .archive-glow { filter: blur(52px); opacity: .08; }
+body.perf-lite .hero-focus { filter: blur(3px); }
+
+.chapter.section-dormant .section-atmosphere,
+.chapter.section-dormant .section-atmosphere::before,
+.chapter.section-dormant .section-atmosphere::after,
+.chapter.section-dormant .light-atmosphere,
+.chapter.section-dormant .dark-atmosphere,
+.chapter.section-dormant .memory-visual,
+.chapter.section-dormant .memory-visual::before,
+.chapter.section-dormant .memory-visual::after,
+.chapter.section-dormant .light-leak,
+.chapter.section-dormant .light-leak::before,
+.chapter.section-dormant .visual-grid,
+.chapter.section-dormant .visual-grid::before,
+.chapter.section-dormant .visual-grid::after,
+.chapter.section-dormant .memory-signal::before,
+.chapter.section-dormant .signal-route,
+.chapter.section-dormant .signal-city-pulse,
+.chapter.section-dormant .union-orbit,
+.chapter.section-dormant .union-node-a,
+.chapter.section-dormant .union-node-l,
+.chapter.section-dormant .union-pulse,
+.chapter.section-dormant .frequency-wave,
+.chapter.section-dormant .frequency-node,
+.chapter.section-dormant .visual-spark,
+.chapter.section-dormant .trait-orbit,
+.chapter.section-dormant .trait-orbit .portrait-word,
+.chapter.section-dormant .future-sky,
+.chapter.section-dormant .future-aurora,
+.chapter.section-dormant .future-orbit,
+.chapter.section-dormant .wish-grid,
+.chapter.section-dormant .wish-grid::before,
+.chapter.section-dormant .wish-grid::after,
+.chapter.section-dormant .archive-glow,
+.chapter.section-dormant .finale-dot-track {
+  animation-play-state: paused !important;
+}
 
 @media (max-width: 820px) {
   .cursor { display: none; }

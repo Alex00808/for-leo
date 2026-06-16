@@ -99,6 +99,31 @@ Object.assign(albumTranslations.zh, {
 
 const languageButtons = document.querySelectorAll('[data-lang]');
 const albumBody = document.body;
+const albumForcedPerformanceMode = (() => {
+  try {
+    const params = new URL(window.location.href).searchParams;
+    return params.get('perf') || window.localStorage.getItem('leoPerfMode') || '';
+  } catch (error) {
+    return '';
+  }
+})();
+const albumLitePerformance = albumForcedPerformanceMode === 'lite'
+  || (albumForcedPerformanceMode !== 'full' && [
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    Boolean(navigator.connection?.saveData),
+    (navigator.hardwareConcurrency || 8) <= 4,
+    (navigator.deviceMemory || 8) <= 4
+  ].some(Boolean));
+albumBody.classList.toggle('perf-lite', albumLitePerformance);
+albumBody.classList.toggle('perf-full', !albumLitePerformance);
+const ALBUM_PERF = {
+  canvasDprCap: albumLitePerformance ? 1.05 : 1.28,
+  clickScale: albumLitePerformance ? .86 : 1,
+  photoMaxSide: albumLitePerformance ? 1280 : 1500
+};
+function albumCanvasPixelRatio(scale = 1) {
+  return Math.max(1, Math.min(window.devicePixelRatio || 1, ALBUM_PERF.canvasDprCap) * scale);
+}
 const translatedElements = document.querySelectorAll('[data-i18n]');
 const translatedPlaceholders = document.querySelectorAll('[data-i18n-placeholder]');
 const pinnedCards = document.querySelectorAll('[data-featured-slot]');
@@ -193,7 +218,7 @@ function compressPhoto(file) {
       const image = new Image();
       image.onerror = reject;
       image.onload = () => {
-        const maxSide = 1500;
+        const maxSide = ALBUM_PERF.photoMaxSide;
         const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
         const canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -216,6 +241,8 @@ function renderPinned() {
     card.dataset.recordId = record?.id || '';
     if (record) {
       const image = new Image();
+      image.loading = 'lazy';
+      image.decoding = 'async';
       image.src = record.src;
       image.alt = card.querySelector('strong').textContent;
       card.prepend(image);
@@ -230,6 +257,8 @@ function createPhotoCard(record, index) {
   card.className = 'photo-card';
   card.dataset.recordId = record.id;
   const image = new Image();
+  image.loading = 'lazy';
+  image.decoding = 'async';
   image.src = record.src;
   const latestComment = (record.comments || []).at(-1);
   image.alt = latestComment?.text || `Leo and Alex memory ${index + 1}`;
@@ -661,7 +690,7 @@ const albumClickParticles = [];
 let albumClickAnimationFrame = 0;
 
 function resizeAlbumClickCanvas() {
-  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const ratio = albumCanvasPixelRatio(ALBUM_PERF.clickScale);
   albumClickCanvas.width = window.innerWidth * ratio;
   albumClickCanvas.height = window.innerHeight * ratio;
   albumClickContext.setTransform(ratio, 0, 0, ratio, 0, 0);
