@@ -344,7 +344,9 @@ function setLanguage(language, animate = true) {
     currentLanguage = language;
     translatableElements.forEach((element) => {
       const value = translations[language][element.dataset.i18n];
-      if (value) element.innerHTML = value;
+      if (!value) return;
+      element.innerHTML = value;
+      if (element.hasAttribute('data-split-words')) splitWords(element);
     });
     translatablePlaceholders.forEach((element) => {
       const value = translations[language][element.dataset.i18nPlaceholder];
@@ -605,6 +607,7 @@ async function openCurtainAfterArrival() {
   document.documentElement.classList.remove('curtain-preload');
   body.classList.remove('curtain-closing');
   body.classList.add('curtain-opening');
+  window.setTimeout(armReveals, 260);
   window.setTimeout(finishCurtainOpening, 2480);
 }
 
@@ -649,6 +652,8 @@ enterButton.addEventListener('click', () => {
     prologue.classList.add('opened');
     document.querySelector('#beginning').scrollIntoView({ behavior: 'auto' });
   }, { exitPrologue: true });
+  // The first chapter starts writing itself just as the curtains part.
+  window.setTimeout(armReveals, 1950);
 });
 
 document.querySelectorAll('a[href]').forEach((link) => {
@@ -677,9 +682,27 @@ document.querySelectorAll('a[href]').forEach((link) => {
   });
 });
 
+// The ring glides after the pointer instead of snapping to it, and stays hidden until the first move.
+const cursorState = { x: 0, y: 0, targetX: 0, targetY: 0, frame: 0 };
+
+function moveCursor() {
+  cursorState.x += (cursorState.targetX - cursorState.x) * 0.22;
+  cursorState.y += (cursorState.targetY - cursorState.y) * 0.22;
+  cursor.style.left = `${cursorState.x.toFixed(1)}px`;
+  cursor.style.top = `${cursorState.y.toFixed(1)}px`;
+  const settled = Math.abs(cursorState.targetX - cursorState.x) < 0.2 && Math.abs(cursorState.targetY - cursorState.y) < 0.2;
+  cursorState.frame = settled ? 0 : requestAnimationFrame(moveCursor);
+}
+
 document.addEventListener('mousemove', (event) => {
-  cursor.style.left = `${event.clientX}px`;
-  cursor.style.top = `${event.clientY}px`;
+  cursorState.targetX = event.clientX;
+  cursorState.targetY = event.clientY;
+  if (!body.classList.contains('cursor-ready')) {
+    cursorState.x = event.clientX;
+    cursorState.y = event.clientY;
+    body.classList.add('cursor-ready');
+  }
+  if (!cursorState.frame) cursorState.frame = requestAnimationFrame(moveCursor);
 });
 
 document.querySelectorAll('button, a').forEach((element) => {
@@ -687,17 +710,16 @@ document.querySelectorAll('button, a').forEach((element) => {
   element.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
 });
 
+// `translate` is separate from `transform`, so the magnetic pull never fights the reveal animation.
 document.querySelectorAll('.magnetic').forEach((element) => {
   element.addEventListener('mousemove', (event) => {
     const rect = element.getBoundingClientRect();
     const x = event.clientX - rect.left - rect.width / 2;
     const y = event.clientY - rect.top - rect.height / 2;
-    element.style.transform = `translate(${x * 0.12}px, ${y * 0.18}px)`;
+    element.style.translate = `${(x * 0.12).toFixed(1)}px ${(y * 0.18).toFixed(1)}px`;
   });
-  element.addEventListener('mouseleave', () => { element.style.transform = ''; });
+  element.addEventListener('mouseleave', () => { element.style.translate = ''; });
 });
-
-const revealElements = document.querySelectorAll('[data-reveal]');
 
 const cinematicTextElements = document.querySelectorAll([
   'main h2',
@@ -725,110 +747,118 @@ const cinematicTextElements = document.querySelectorAll([
   'main .signature'
 ].join(','));
 
-cinematicTextElements.forEach((element, index) => {
-  const isTitle = element.matches('h2, h3, .portrait-main');
-  const isMeta = element.matches('.eyebrow, .chapter-number, .memory-date, .wish-route, .signal-city, .signal-caption, .wish > span, .album-caption');
-  const direction = index % 2 === 0 ? 'left' : 'right';
+const CJK_CHARACTER = /[㐀-鿿豈-﫿]/;
+// One CJK character keeps its opening quote in front and its punctuation behind, so no line starts with "，".
+const CJK_TOKEN = /[“‘《（「『(]*[㐀-鿿豈-﫿][^㐀-鿿豈-﫿\s“‘《（「『]*|[^㐀-鿿豈-﫿\s]+/g;
 
-  element.classList.add('cinematic-text', `cinematic-from-${direction}`);
-  if (isTitle) element.classList.add('cinematic-title');
-  else if (isMeta) element.classList.add('cinematic-meta');
+function splitWords(element) {
+  if (!element || element.querySelector('.word')) return;
+  let index = 0;
+  const makeWord = (text) => {
+    const word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = text;
+    word.style.setProperty('--word-index', String(Math.min(index, 16)));
+    index += 1;
+    return word;
+  };
+  const walk = (node) => {
+    Array.from(node.childNodes).forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const fragment = document.createDocumentFragment();
+        child.textContent.split(/(\s+)/).forEach((part) => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) fragment.append(document.createTextNode(part));
+          else if (CJK_CHARACTER.test(part)) (part.match(CJK_TOKEN) || [part]).forEach((token) => fragment.append(makeWord(token)));
+          else fragment.append(makeWord(part));
+        });
+        child.replaceWith(fragment);
+      } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'BR') {
+        walk(child);
+      }
+    });
+  };
+  walk(element);
+
+  // Each <br>-separated line becomes its own block, so every line is balanced on its own
+  // and no heading ends with a single stranded word.
+  const lines = [[]];
+  Array.from(element.childNodes).forEach((child) => {
+    if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'BR') {
+      child.remove();
+      lines.push([]);
+    } else {
+      lines[lines.length - 1].push(child);
+    }
+  });
+  lines.forEach((nodes) => {
+    const line = document.createElement('span');
+    line.className = 'line';
+    line.append(...nodes);
+    element.append(line);
+  });
+}
+
+cinematicTextElements.forEach((element) => {
+  const isTitle = element.matches('h2, h3');
+  const isMeta = element.matches('.eyebrow, .chapter-number, .memory-date, .wish-route, .signal-city, .signal-caption, .wish > span, .album-caption');
+
+  element.classList.add('cinematic-text');
+  if (isTitle) {
+    element.classList.add('cinematic-title', 'split-words');
+    element.setAttribute('data-split-words', '');
+    splitWords(element);
+  } else if (isMeta) element.classList.add('cinematic-meta');
   else element.classList.add('cinematic-body');
 });
+
+document.querySelectorAll('[data-split-words]').forEach(splitWords);
 
 function clamp(value, minimum = 0, maximum = 1) {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
-function easeOutQuart(value) {
-  const progress = clamp(value);
-  return 1 - Math.pow(1 - progress, 4);
-}
+// Every block reveals once, the moment it enters the lower part of the screen, and then stays sharp.
+// Blocks entering together are staggered so each section unfolds line by line.
+let revealsArmed = false;
+let pendingReveals = Array.from(document.querySelectorAll('[data-reveal], .cinematic-text'));
 
-function easeCinematicText(value) {
-  const progress = clamp(value);
-  return .5 - Math.cos(progress * Math.PI) * .5;
-}
-
-function getRevealMetric(element, options = {}) {
+function updateReveals() {
+  if (!revealsArmed || !pendingReveals.length) return;
   const viewportHeight = window.innerHeight || 1;
-  const rect = element.getBoundingClientRect();
-  const {
-    start = 1.02,
-    finish = 0.66,
-    anchorRatio = 0.2,
-    anchorCap = 0.18,
-    forceTop = 0.5,
-    forceBottom = 0.92,
-    easing = easeOutQuart
-  } = options;
-  const anchorOffset = Math.min(Math.max(rect.height, 1) * anchorRatio, viewportHeight * anchorCap);
-  const anchor = rect.top + anchorOffset;
-  let rawProgress = clamp(((viewportHeight * start) - anchor) / (viewportHeight * (start - finish)));
-
-  // Large headings and panels should finish inside their own chapter, not halfway through the next one.
-  if (rect.top < viewportHeight * forceTop || rect.bottom < viewportHeight * forceBottom) {
-    rawProgress = 1;
-  }
-  if (rect.bottom < viewportHeight * 0.08) {
-    rawProgress = 1;
-  }
-  if (rect.top > viewportHeight * 1.14) {
-    rawProgress = 0;
-  }
-
-  return {
-    raw: rawProgress,
-    eased: easing(rawProgress)
-  };
-}
-
-function updateRevealProgress() {
-  revealElements.forEach((element) => {
-    const metric = getRevealMetric(element, {
-      start: 1,
-      finish: 0.68,
-      anchorRatio: 0.18,
-      anchorCap: 0.16,
-      forceTop: 0.78,
-      forceBottom: 0.98
-    });
-    const pop = Math.sin(metric.raw * Math.PI);
-
-    const settled = metric.raw >= 0.94;
-    element.style.setProperty('--reveal-progress', (settled ? 1 : metric.eased).toFixed(3));
-    element.style.setProperty('--reveal-pop', pop.toFixed(3));
-    element.classList.toggle('is-revealed', settled);
+  let batchIndex = 0;
+  pendingReveals = pendingReveals.filter((element) => {
+    if (element.getBoundingClientRect().top > viewportHeight * 0.9) return true;
+    const delay = Math.min(batchIndex * 0.09, 0.8);
+    batchIndex += 1;
+    element.style.setProperty('--reveal-delay', `${delay.toFixed(2)}s`);
+    element.style.setProperty('--reveal-progress', '1');
+    element.classList.add('is-revealed');
+    window.setTimeout(() => element.style.removeProperty('--reveal-delay'), (delay + 3.2) * 1000);
+    return false;
   });
 }
 
-function updateCinematicText() {
-  cinematicTextElements.forEach((element) => {
-    const isTitle = element.classList.contains('cinematic-title');
-    const isMeta = element.classList.contains('cinematic-meta');
-    const metric = getRevealMetric(element, {
-      start: isTitle ? 1.18 : isMeta ? 1.1 : 1.14,
-      finish: isTitle ? 0.72 : isMeta ? 0.76 : 0.78,
-      anchorRatio: isTitle ? 0.12 : isMeta ? 0.12 : 0.16,
-      anchorCap: isTitle ? 0.12 : isMeta ? 0.12 : 0.15,
-      forceTop: isTitle ? 0.74 : isMeta ? 0.82 : 0.82,
-      forceBottom: 0.98,
-      easing: easeCinematicText
-    });
-    const settled = metric.raw >= 0.93;
-    const progress = settled ? 1 : metric.eased;
-    const velocity = settled ? 0 : Math.sin(metric.raw * Math.PI);
-    const flare = !settled && metric.raw > 0.06 && metric.raw < 0.9 ? velocity : 0;
+function armReveals() {
+  if (revealsArmed) return;
+  revealsArmed = true;
+  requestScrollUpdate();
+}
 
-    element.style.setProperty('--text-progress', progress.toFixed(3));
-    element.style.setProperty('--text-velocity', velocity.toFixed(3));
-    element.style.setProperty('--text-pop', velocity.toFixed(3));
-    element.style.setProperty('--text-flare', flare.toFixed(3));
-    element.classList.toggle('is-revealed', settled);
+// The language switcher follows the colour of whichever chapter is directly underneath it.
+const toneChapters = Array.from(document.querySelectorAll('[data-ambient]'));
+
+function updateTopTone() {
+  const probe = 40;
+  const chapter = toneChapters.find((section) => {
+    const rect = section.getBoundingClientRect();
+    return rect.top <= probe && rect.bottom > probe;
   });
+  if (chapter) body.dataset.topTone = chapter.dataset.ambient;
 }
 
 function handleScroll() {
+  updateTopTone();
   const scrollable = document.documentElement.scrollHeight - window.innerHeight;
   progressBar.style.width = `${(window.scrollY / scrollable) * 100}%`;
 
@@ -839,8 +869,7 @@ function handleScroll() {
     element.style.translate = `0 ${offset}px`;
   });
 
-  updateRevealProgress();
-  updateCinematicText();
+  updateReveals();
 }
 
 let scrollFrame = 0;
@@ -1251,8 +1280,8 @@ function animateClickParticles() {
     const forming = Math.min(1, progress / 0.28);
     const scatter = Math.max(0, (progress - 0.32) / 0.68);
     const ease = 1 - Math.pow(1 - forming, 3);
-    const x = particle.originX + particle.targetX * ease + particle.velocityX * scatter * 22;
-    const y = particle.originY + particle.targetY * ease + particle.velocityY * scatter * 22 - scatter * 8;
+    const x = particle.originX + particle.targetX * ease + particle.velocityX * scatter * particle.spread;
+    const y = particle.originY + particle.targetY * ease + particle.velocityY * scatter * particle.spread - scatter * particle.rise;
     const alpha = progress < 0.55 ? 0.85 : (1 - progress) / 0.45 * 0.85;
 
     clickContext.beginPath();
@@ -1268,8 +1297,7 @@ function animateClickParticles() {
   else clickAnimationFrame = 0;
 }
 
-function createClickHeart(x, y) {
-  const points = 24;
+function createClickHeart(x, y, { points = 24, scale = 0.72, spread = 22, rise = 8, life = 54, size = 1, gold = 'rgba(213,190,143,ALPHA)', wine = 'rgba(112,42,58,ALPHA)', wineEvery = 5 } = {}) {
   for (let index = 0; index < points; index += 1) {
     const angle = (Math.PI * 2 * index) / points;
     const heartX = 16 * Math.pow(Math.sin(angle), 3);
@@ -1278,17 +1306,46 @@ function createClickHeart(x, y) {
     clickParticles.push({
       originX: x,
       originY: y,
-      targetX: heartX * 0.72,
-      targetY: heartY * 0.72,
+      targetX: heartX * scale,
+      targetY: heartY * scale,
       velocityX: heartX / length + (Math.random() - 0.5) * 0.25,
       velocityY: heartY / length + (Math.random() - 0.5) * 0.25,
-      radius: index % 4 === 0 ? 1.7 : 1.05,
-      color: index % 5 === 0 ? 'rgba(112,42,58,ALPHA)' : 'rgba(213,190,143,ALPHA)',
+      spread,
+      rise,
+      radius: (index % 4 === 0 ? 1.7 : 1.05) * size,
+      color: index % wineEvery === 0 ? wine : gold,
       age: 0,
-      life: 54 + Math.random() * 12
+      life: life + Math.random() * 12
     });
   }
 
+  if (!clickAnimationFrame) clickAnimationFrame = requestAnimationFrame(animateClickParticles);
+}
+
+// The answer deserves more than a click: a large golden heart forms around the button, then scatters into stardust.
+function createLoveBurst(x, y) {
+  const heartScale = Math.min(window.innerWidth, window.innerHeight) / 95;
+  const richColors = { gold: 'rgba(204,154,74,ALPHA)', wine: 'rgba(134,36,58,ALPHA)', wineEvery: 3 };
+  createClickHeart(x, y, { points: 84, scale: heartScale, spread: 120, rise: 60, life: 118, size: 1.7, ...richColors });
+  createClickHeart(x, y, { points: 40, scale: heartScale * 0.55, spread: 80, rise: 44, life: 104, size: 1.3, ...richColors });
+  for (let index = 0; index < 46; index += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 30 + Math.random() * 60;
+    clickParticles.push({
+      originX: x,
+      originY: y,
+      targetX: Math.cos(angle) * distance,
+      targetY: Math.sin(angle) * distance,
+      velocityX: Math.cos(angle),
+      velocityY: Math.sin(angle),
+      spread: 140 + Math.random() * 160,
+      rise: 30,
+      radius: 0.8 + Math.random() * 1.4,
+      color: Math.random() > 0.3 ? 'rgba(244,218,160,ALPHA)' : 'rgba(150,52,72,ALPHA)',
+      age: 0,
+      life: 90 + Math.random() * 40
+    });
+  }
   if (!clickAnimationFrame) clickAnimationFrame = requestAnimationFrame(animateClickParticles);
 }
 
@@ -1660,14 +1717,27 @@ function setupStarCanvas(canvas, count, colored = false) {
     canvas.width = nextWidth;
     canvas.height = nextHeight;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    particles = Array.from({ length: particleCount }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      radius: Math.random() * 1.2 + 0.2,
-      speed: Math.random() * 0.12 + 0.03,
-      alpha: Math.random() * 0.6 + 0.15,
-      color: colored && Math.random() > 0.6 ? '#bda77d' : '#eee9df'
-    }));
+    particles = Array.from({ length: particleCount }, () => {
+      const heart = isCelebration && Math.random() < 0.16;
+      return {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: heart ? Math.random() * 3.4 + 2.6 : Math.random() * 1.2 + 0.2,
+        speed: heart ? Math.random() * 0.5 + 0.28 : Math.random() * 0.12 + 0.03,
+        alpha: Math.random() * 0.6 + 0.15,
+        sway: Math.random() * Math.PI * 2,
+        heart,
+        color: heart
+          ? (Math.random() > 0.45 ? 'rgba(214,176,112,ALPHA)' : 'rgba(150,52,72,ALPHA)')
+          : colored && Math.random() > 0.6 ? '#bda77d' : '#eee9df'
+      };
+    });
+  }
+
+  function drawHeart(x, y, size) {
+    context.moveTo(x, y + size * 0.9);
+    context.bezierCurveTo(x - size * 1.35, y + size * 0.05, x - size * 0.9, y - size * 1.05, x, y - size * 0.38);
+    context.bezierCurveTo(x + size * 0.9, y - size * 1.05, x + size * 1.35, y + size * 0.05, x, y + size * 0.9);
   }
 
   function canAnimate() {
@@ -1685,10 +1755,18 @@ function setupStarCanvas(canvas, count, colored = false) {
     context.clearRect(0, 0, window.innerWidth, window.innerHeight);
     particles.forEach((particle) => {
       particle.y -= particle.speed;
-      if (particle.y < -4) particle.y = window.innerHeight + 4;
+      if (particle.y < -12) particle.y = window.innerHeight + 12;
       context.beginPath();
-      context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-      context.fillStyle = colored ? particle.color : `rgba(238,233,223,${particle.alpha})`;
+      if (particle.heart) {
+        particle.sway += 0.018;
+        // Hearts drift upward, sway gently and fade out near the top.
+        const fade = clamp(particle.y / (window.innerHeight * 0.35));
+        drawHeart(particle.x + Math.sin(particle.sway) * 9, particle.y, particle.radius);
+        context.fillStyle = particle.color.replace('ALPHA', (particle.alpha * 0.9 * fade).toFixed(3));
+      } else {
+        context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        context.fillStyle = colored ? particle.color : `rgba(238,233,223,${particle.alpha})`;
+      }
       context.fill();
     });
     frameId = requestAnimationFrame(draw);
@@ -1733,10 +1811,17 @@ function setupStarCanvas(canvas, count, colored = false) {
 setupStarCanvas(document.querySelector('#stars'), 95);
 setupStarCanvas(document.querySelector('#celebration'), 180, true);
 
+let loveRevealTimer = 0;
 yesButton.addEventListener('click', () => {
-  loveReveal.classList.add('visible');
-  loveReveal.setAttribute('aria-hidden', 'false');
-  body.classList.add('locked');
+  if (loveRevealTimer || loveReveal.classList.contains('visible')) return;
+  const rect = yesButton.getBoundingClientRect();
+  createLoveBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  loveRevealTimer = window.setTimeout(() => {
+    loveRevealTimer = 0;
+    loveReveal.classList.add('visible');
+    loveReveal.setAttribute('aria-hidden', 'false');
+    body.classList.add('locked');
+  }, 650);
 });
 
 closeReveal.addEventListener('click', () => {
