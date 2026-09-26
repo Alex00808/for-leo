@@ -35,7 +35,10 @@ body.curtain-opening .curtain-right { transform:translate3d(103%,0,0) scaleX(.88
 .album-cursor { position:fixed; z-index:1500; width:28px; height:28px; border:1px solid rgba(189,159,108,.8); border-radius:50%; pointer-events:none; transform:translate(-50%,-50%); transition:width .25s,height .25s,background .25s; }
 .album-cursor.hovered { width:48px; height:48px; background:rgba(189,159,108,.09); }
 #albumClickEffects { position:fixed; z-index:2100; inset:0; width:100%; height:100%; pointer-events:none; }
-.album-nav { position:fixed; z-index:100; top:0; left:0; width:100%; display:flex; align-items:center; justify-content:space-between; padding:1.15rem 2.2rem; mix-blend-mode:difference; }
+.album-nav { position:fixed; z-index:100; top:0; left:0; width:100%; display:flex; align-items:center; justify-content:space-between; padding:1.15rem 2.2rem; color:var(--paper); }
+.album-mark,.album-nav > p { transition:color .5s ease; }
+body.nav-on-light .album-mark,body.nav-on-light .album-nav > p { color:var(--ink); }
+body.nav-on-light .album-mark span { color:var(--wine); }
 .album-mark { font-family:var(--serif); font-size:1.45rem; text-decoration:none; white-space:nowrap; }
 .album-mark span { padding:0 .25rem; color:var(--gold); font-family:var(--sans); font-size:.48rem; letter-spacing:.18em; vertical-align:middle; }
 .album-nav > p { margin:0; font-family:var(--serif); font-size:.9rem; font-style:italic; letter-spacing:.08em; }

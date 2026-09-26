@@ -846,3 +846,23 @@ window.LoveCloud.onAuthChange((profile) => {
 });
 loadAlbum();
 window.addEventListener('pageshow', loadAlbum);
+
+// The navigation switches to dark ink while it sits over the light "pinned" section.
+const lightNavSections = document.querySelectorAll('.pinned-section');
+let navToneFrame = 0;
+
+function updateNavTone() {
+  navToneFrame = 0;
+  const probe = 40;
+  const onLight = Array.from(lightNavSections).some((section) => {
+    const rect = section.getBoundingClientRect();
+    return rect.top <= probe && rect.bottom >= probe;
+  });
+  document.body.classList.toggle('nav-on-light', onLight);
+}
+
+window.addEventListener('scroll', () => {
+  if (!navToneFrame) navToneFrame = requestAnimationFrame(updateNavTone);
+}, { passive: true });
+window.addEventListener('resize', updateNavTone);
+updateNavTone();
